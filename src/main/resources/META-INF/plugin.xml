@@ -1,19 +1,33 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.yinxi900607cloud.ibook</id>
-    <name>ibook</name>
-    <vendor>yinxi900607-cloud</vendor>
+    <id>com.yinxi.edgereader</id>
+    <name>Edge Reader</name>
+    <vendor>yinxi</vendor>
     <description><![CDATA[
-        <p><b>ibook</b> is a repository that provides a pure template to make it easier to create a new plugin project.</p>
-        <p>The main goal of this template is to speed up the setup phase of plugin development for both new and experienced developers by preconfiguring the project scaffold and CI, linking to the proper documentation pages, and keeping everything organized.</p>
+        <p>A private, local-first electronic book reader integrated into JetBrains IDEs.</p>
+        <p>Edge Reader provides a collapsible reading shelf in the right Tool Window.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
+    <resource-bundle>messages.EdgeReaderBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.yinxi900607cloud.ibook.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.yinxi900607cloud.ibook.startup.MyProjectActivity" />
+        <toolWindow
+            id="Edge Reader"
+            anchor="right"
+            canCloseContents="false"
+            factoryClass="com.yinxi.edgereader.toolwindow.EdgeReaderToolWindowFactory"
+            icon="/icons/edgeReader.svg"/>
     </extensions>
+
+    <actions>
+        <action
+            id="com.yinxi.edgereader.actions.ToggleEdgeReader"
+            class="com.yinxi.edgereader.actions.ToggleEdgeReaderAction"
+            text="Toggle Edge Reader"
+            description="Show or hide the Edge Reader tool window">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt R"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
