@@ -4,7 +4,7 @@
     <vendor>yinxi</vendor>
     <description><![CDATA[
         <p>A private, local-first electronic book reader integrated into JetBrains IDEs.</p>
-        <p>Edge Reader provides a collapsible reading shelf in the right Tool Window.</p>
+        <p>Edge Reader provides a collapsible reading shelf with large-file TXT reading, chapter navigation, and progress restoration.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -12,6 +12,7 @@
     <resource-bundle>messages.EdgeReaderBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Edge Reader" displayType="BALLOON" isLogByDefault="true"/>
         <toolWindow
             id="Edge Reader"
             anchor="right"
@@ -29,5 +30,25 @@
             <keyboard-shortcut keymap="$default" first-keystroke="alt R"/>
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
+        <action
+            id="com.yinxi.edgereader.actions.OpenBook"
+            class="com.yinxi.edgereader.actions.OpenBookAction"
+            text="Open Book in Edge Reader"
+            description="Open a local electronic book in Edge Reader"/>
+        <action
+            id="com.yinxi.edgereader.actions.NextChapter"
+            class="com.yinxi.edgereader.actions.NextChapterAction"
+            text="Edge Reader: Next Chapter"
+            description="Jump to the next chapter"/>
+        <action
+            id="com.yinxi.edgereader.actions.PreviousChapter"
+            class="com.yinxi.edgereader.actions.PreviousChapterAction"
+            text="Edge Reader: Previous Chapter"
+            description="Jump to the previous chapter"/>
+        <action
+            id="com.yinxi.edgereader.actions.BackToLibrary"
+            class="com.yinxi.edgereader.actions.BackToLibraryAction"
+            text="Edge Reader: Back to Library"
+            description="Return to the Edge Reader library"/>
     </actions>
 </idea-plugin>
