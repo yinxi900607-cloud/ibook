@@ -20,3 +20,7 @@
 - Stable EPUB progress locators using spine ID, chapter href, element ID, normalized text offset, and scroll ratio.
 - Current IntelliJ IDEA 2026.2 platform as the primary runtime target.
 - Java 25 toolchain and bytecode target, matching the current IntelliJ 2026.2 runtime.
+- PDFBox 3 file-backed PDF loading with metadata, outlines, per-page text extraction, and cancellable search.
+- Background current/adjacent page rendering, bounded LRU image cache, page jump, fit-width, and custom zoom.
+- PDF page/vertical-position/zoom persistence and compatibility for image-only scanned PDFs without OCR.
+- Next Page and Previous Page Keymap actions.

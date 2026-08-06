@@ -11,6 +11,8 @@ plugins {
 }
 
 dependencies {
+    implementation("org.apache.pdfbox:pdfbox:3.0.8")
+    implementation("org.apache.pdfbox:jbig2-imageio:3.0.5")
     implementation("org.jsoup:jsoup:1.22.2")
     implementation("org.xerial:sqlite-jdbc:3.53.1.0")
 

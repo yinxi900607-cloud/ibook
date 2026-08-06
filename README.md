@@ -4,7 +4,7 @@
 
 Edge Reader is a private, local-first electronic book reader integrated into JetBrains IDEs.
 
-The current TXT and EPUB MVP provides:
+The current TXT, EPUB, and PDF reader provides:
 
 - A collapsible right-side Tool Window and shared local library.
 - UTF-8, UTF-16 LE/BE, GB18030, GBK, and Big5 handling with an encoding fallback dialog.
@@ -15,6 +15,9 @@ The current TXT and EPUB MVP provides:
 - EPUB 2 NCX and EPUB 3 navigation, OPF manifest/spine parsing, cover discovery, local images, and basic CSS.
 - Stable EPUB chapter/text-offset progress restoration with a Swing HTML reader.
 - ZIP Slip, archive expansion, XML entity, script, remote-resource, and local path escape protections.
+- PDFBox-based file-backed PDF loading, page rendering, outline navigation, page jumps, and text search.
+- Current-page plus adjacent-page rendering with a bounded LRU image cache, fit-width mode, and 50%–400% zoom.
+- Stable PDF restoration by page, vertical ratio, and zoom; image-only scanned PDFs remain readable without OCR.
 
 ## Requirements
 
@@ -43,4 +46,4 @@ For local development against an already installed IDE, pass
 - Choose <kbd>Install Plugin from Disk…</kbd> and select the ZIP in `build/distributions/`.
 - Open the right-side <kbd>Edge Reader</kbd> Tool Window, or press <kbd>Option+R</kbd> on macOS / <kbd>Alt+R</kbd> on Windows and Linux.
 
-PDF, Markdown, standalone HTML, search UI, and bookmarks are intentionally deferred to later development phases.
+Markdown, standalone HTML, cross-format search UI, and bookmarks are intentionally deferred to later development phases.

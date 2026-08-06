@@ -20,5 +20,7 @@ class EdgeReaderToolWindowController(
     fun openBook() = panel?.chooseBook()
     fun nextChapter() = panel?.nextChapter()
     fun previousChapter() = panel?.previousChapter()
+    fun nextPage() = panel?.nextPage()
+    fun previousPage() = panel?.previousPage()
     fun backToLibrary() = panel?.backToLibrary()
 }

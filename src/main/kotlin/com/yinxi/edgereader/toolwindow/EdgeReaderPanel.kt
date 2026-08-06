@@ -12,6 +12,9 @@ import com.yinxi.edgereader.model.BookNavigationItem
 import com.yinxi.edgereader.model.BookRecord
 import com.yinxi.edgereader.model.ReadingLocator
 import com.yinxi.edgereader.parser.epub.EpubParsedBook
+import com.yinxi.edgereader.parser.pdf.InvalidPdfException
+import com.yinxi.edgereader.parser.pdf.PdfParsedBook
+import com.yinxi.edgereader.parser.pdf.PdfZoomMode
 import com.yinxi.edgereader.parser.txt.EncodingSelectionRequiredException
 import com.yinxi.edgereader.parser.txt.TxtParsedBook
 import com.yinxi.edgereader.persistence.repository.ReadingLocatorCodec
@@ -23,6 +26,8 @@ import com.yinxi.edgereader.ui.EdgeReaderNotifications
 import com.yinxi.edgereader.ui.library.LibraryPanel
 import com.yinxi.edgereader.ui.reader.ChapterChooserDialog
 import com.yinxi.edgereader.ui.reader.EpubReaderPanel
+import com.yinxi.edgereader.ui.reader.PdfReaderPanel
+import com.yinxi.edgereader.ui.reader.PdfSearchDialog
 import com.yinxi.edgereader.ui.reader.TxtReaderPanel
 import com.yinxi.edgereader.ui.settings.EncodingChooserDialog
 import com.yinxi.edgereader.ui.settings.ReaderSettingsDialog
@@ -30,6 +35,7 @@ import java.awt.CardLayout
 import java.awt.event.HierarchyEvent
 import java.net.URI
 import java.nio.file.Path
+import kotlinx.coroutines.Job
 
 class EdgeReaderPanel(
     private val project: Project,
@@ -65,7 +71,16 @@ class EdgeReaderPanel(
         onNavigateLink = ::navigateEpubLink,
         onLocationChanged = ::onEpubLocationChanged,
     )
+    private val pdfReaderPanel = PdfReaderPanel(
+        onBack = ::backToLibrary,
+        onOpen = ::chooseBook,
+        onChooseChapter = ::chooseChapter,
+        onSearch = ::showPdfSearch,
+        onRequestPage = ::loadPdfPage,
+        onLocationChanged = ::onPdfLocationChanged,
+    )
     private var currentBook: OpenedBook? = null
+    private var pdfRenderJob: Job? = null
     private var disposed = false
     private var restoreAttempted = false
 
@@ -73,6 +88,7 @@ class EdgeReaderPanel(
         layout = cards
         readerContainer.add(txtReaderPanel, TXT_READER_CARD)
         readerContainer.add(epubReaderPanel, EPUB_READER_CARD)
+        readerContainer.add(pdfReaderPanel, PDF_READER_CARD)
         add(libraryPanel, LIBRARY_CARD)
         add(readerContainer, READER_CARD)
         controller.attach(this)
@@ -98,6 +114,14 @@ class EdgeReaderPanel(
         BookFormat.TXT -> txtReaderPanel.previousChapter()
         BookFormat.EPUB -> epubReaderPanel.previousChapter()
         else -> Unit
+    }
+
+    fun nextPage() {
+        pdfReaderPanel.nextPage()
+    }
+
+    fun previousPage() {
+        pdfReaderPanel.previousPage()
     }
 
     fun backToLibrary() {
@@ -154,6 +178,7 @@ class EdgeReaderPanel(
     }
 
     private fun showReader(book: OpenedBook) {
+        pdfRenderJob?.cancel()
         currentBook?.parsedBook?.close()
         currentBook = book
         settings.state.lastBookId = book.record.id
@@ -167,6 +192,10 @@ class EdgeReaderPanel(
             is EpubParsedBook -> {
                 readerCards.show(readerContainer, EPUB_READER_CARD)
                 epubReaderPanel.showBook(book, locator as? ReadingLocator.EpubLocator)
+            }
+            is PdfParsedBook -> {
+                readerCards.show(readerContainer, PDF_READER_CARD)
+                pdfReaderPanel.showBook(book, locator as? ReadingLocator.PdfLocator)
             }
             else -> showError("Unable to open this file", IllegalArgumentException("Unsupported parsed book type"))
         }
@@ -204,6 +233,40 @@ class EdgeReaderPanel(
         currentBook?.record?.id?.let { progressService.update(it, locator, chapterTitle, progressPercent) }
     }
 
+    private fun onPdfLocationChanged(locator: ReadingLocator.PdfLocator, chapterTitle: String?, progressPercent: Double) {
+        currentBook?.record?.id?.let { progressService.update(it, locator, chapterTitle, progressPercent) }
+    }
+
+    private fun loadPdfPage(
+        pageIndex: Int,
+        viewportWidth: Int,
+        zoomMode: PdfZoomMode,
+        customScale: Float,
+        generation: Long,
+    ) {
+        val book = currentBook ?: return
+        pdfRenderJob?.cancel()
+        pdfRenderJob = libraryService.renderPdfPage(book, pageIndex, viewportWidth, zoomMode, customScale) { result ->
+            if (disposed || currentBook?.record?.id != book.record.id) return@renderPdfPage
+            result.onSuccess { pdfReaderPanel.setPage(it, generation) }
+                .onFailure {
+                    pdfReaderPanel.setLoadFailed(generation)
+                    showError("Unable to render this PDF page", it)
+                }
+        }
+    }
+
+    private fun showPdfSearch() {
+        val book = currentBook ?: return
+        val pdf = book.parsedBook as? PdfParsedBook ?: return
+        PdfSearchDialog(
+            project = project,
+            searchable = pdf.hasSearchableText,
+            onSearch = { query, callback -> libraryService.searchPdf(book, query, callback = callback) },
+            onJump = { result -> (result.locator as? ReadingLocator.PdfLocator)?.let(pdfReaderPanel::jumpTo) },
+        ).show()
+    }
+
     private fun chooseChapter() {
         val chapters = navigation()
         if (chapters.isEmpty()) {
@@ -217,6 +280,7 @@ class EdgeReaderPanel(
     private fun navigation(): List<BookNavigationItem> = when (val parsed = currentBook?.parsedBook) {
         is TxtParsedBook -> parsed.index.chapters
         is EpubParsedBook -> parsed.navigation
+        is PdfParsedBook -> parsed.navigation
         else -> emptyList()
     }
 
@@ -224,6 +288,7 @@ class EdgeReaderPanel(
         when (locator) {
             is ReadingLocator.TextLocator -> txtReaderPanel.jumpTo(locator.characterOffset)
             is ReadingLocator.EpubLocator -> epubReaderPanel.jumpTo(locator)
+            is ReadingLocator.PdfLocator -> pdfReaderPanel.jumpTo(locator)
             else -> Unit
         }
     }
@@ -307,6 +372,12 @@ class EdgeReaderPanel(
                     (it.locator as? ReadingLocator.EpubLocator)?.chapterHref == locator.chapterHref
                 }?.title, percent)
             }
+            is PdfParsedBook -> if (pdfReaderPanel.hasRenderedPage()) {
+                val locator = pdfReaderPanel.currentLocator()
+                val percent = if (parsed.pageCount <= 0) 0.0 else
+                    (locator.pageIndex + locator.verticalRatio) / parsed.pageCount * 100.0
+                progressService.update(book.record.id, locator, "Page ${locator.pageIndex + 1}", percent)
+            }
             else -> Unit
         }
         progressService.flushAsync(book.record.id)
@@ -314,9 +385,9 @@ class EdgeReaderPanel(
 
     private fun bookDescriptor(title: String) = FileChooserDescriptor(true, false, false, false, false, false)
         .withTitle(title)
-        .withDescription("Choose a local .txt, .text, or .epub file. Parsing runs in the background.")
+        .withDescription("Choose a local .txt, .text, .epub, or .pdf file. Parsing runs in the background.")
         .withFileFilter { file ->
-            file.isDirectory || file.extension?.lowercase() in setOf("txt", "text", "epub")
+            file.isDirectory || file.extension?.lowercase() in setOf("txt", "text", "epub", "pdf")
         }
 
     private fun showError(title: String, exception: Throwable) {
@@ -328,11 +399,14 @@ class EdgeReaderPanel(
         exception is java.nio.charset.CharacterCodingException -> "The selected encoding cannot decode this file. Choose a different encoding."
         exception is com.yinxi.edgereader.security.UnsafeArchiveException -> exception.message ?: "The EPUB archive was rejected by safety checks."
         exception is com.yinxi.edgereader.parser.epub.InvalidEpubException -> exception.message ?: "The EPUB structure is incomplete."
+        exception is InvalidPdfException -> exception.message ?: "The PDF is damaged or password protected."
         else -> exception.message?.takeIf { it.isNotBlank() } ?: "An unexpected error occurred while processing the book."
     }
 
     override fun dispose() {
         disposed = true
+        pdfRenderJob?.cancel()
+        pdfReaderPanel.disposeReader()
         saveAndFlush()
         currentBook?.parsedBook?.close()
         currentBook = null
@@ -344,5 +418,6 @@ class EdgeReaderPanel(
         private const val READER_CARD = "reader"
         private const val TXT_READER_CARD = "txt"
         private const val EPUB_READER_CARD = "epub"
+        private const val PDF_READER_CARD = "pdf"
     }
 }

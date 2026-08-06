@@ -5,18 +5,26 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.yinxi.edgereader.model.BookRecord
+import com.yinxi.edgereader.model.SearchOptions
+import com.yinxi.edgereader.model.SearchResult
 import com.yinxi.edgereader.parser.BookOpenContext
 import com.yinxi.edgereader.parser.BookParserRegistry
 import com.yinxi.edgereader.parser.epub.EpubChapterContent
 import com.yinxi.edgereader.parser.epub.EpubParsedBook
+import com.yinxi.edgereader.parser.pdf.PdfBookParser
+import com.yinxi.edgereader.parser.pdf.PdfParsedBook
+import com.yinxi.edgereader.parser.pdf.PdfRenderedPage
+import com.yinxi.edgereader.parser.pdf.PdfZoomMode
 import com.yinxi.edgereader.parser.txt.TxtParsedBook
 import com.yinxi.edgereader.parser.txt.TextSlice
 import com.yinxi.edgereader.persistence.database.EdgeReaderDatabaseService
 import com.yinxi.edgereader.persistence.repository.SqliteBookRepository
 import com.yinxi.edgereader.persistence.repository.SqliteProgressRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import java.nio.file.Files
 import java.nio.file.Path
@@ -99,6 +107,54 @@ class BookLibraryService(
         deliver(callback, runCatching { (book.parsedBook as EpubParsedBook).chapter(chapterIndex) })
     }
 
+    fun renderPdfPage(
+        book: OpenedBook,
+        pageIndex: Int,
+        viewportWidth: Int,
+        zoomMode: PdfZoomMode,
+        customScale: Float,
+        callback: (Result<PdfRenderedPage>) -> Unit,
+    ): Job = coroutineScope.launch(Dispatchers.IO) {
+        val pdf = book.parsedBook as PdfParsedBook
+        val result = runCatching {
+            val scale = when (zoomMode) {
+                PdfZoomMode.FIT_WIDTH -> {
+                    val metrics = pdf.pageMetrics(pageIndex)
+                    (viewportWidth.coerceAtLeast(160) - 24).toFloat() / metrics.widthPoints.coerceAtLeast(1f)
+                }
+                PdfZoomMode.CUSTOM -> customScale.coerceIn(0.5f, 4f)
+            }
+            pdf.renderPage(pageIndex, scale)
+        }
+        coroutineContext.ensureActive()
+        deliver(callback, result)
+        result.getOrNull()?.let { rendered ->
+            listOf(pageIndex - 1, pageIndex + 1)
+                .filter { it in 0 until pdf.pageCount }
+                .forEach { adjacent ->
+                    runCatching { pdf.renderPage(adjacent, rendered.renderScale) }
+                        .onFailure { logger<BookLibraryService>().debug("PDF adjacent page prefetch failed", it) }
+                }
+        }
+    }
+
+    fun searchPdf(
+        book: OpenedBook,
+        query: String,
+        options: SearchOptions = SearchOptions(),
+        callback: (Result<List<SearchResult>>) -> Unit,
+    ): Job = coroutineScope.launch(Dispatchers.IO) {
+        val result = try {
+            Result.success(PdfBookParser().search(book.parsedBook, query, options))
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger<BookLibraryService>().warn("PDF search failed", exception)
+            Result.failure(exception)
+        }
+        deliver(callback, result)
+    }
+
     private suspend fun openBookInternal(file: Path, encodingOverride: String?): OpenedBook {
         val parser = requireNotNull(registry.findParser(file)) { "Unsupported book format" }
         val record = identity.resolve(file, parser.format, encodingOverride)
@@ -112,24 +168,30 @@ class BookLibraryService(
                 cacheKey = record.quickFingerprint,
             ),
         )
-        if (parsed is TxtParsedBook) books.updateEncoding(record.id, parsed.index.charsetName)
-        val navigation = parser.buildNavigation(parsed)
-        books.replaceChapters(record.id, navigation)
-        val currentRecord = books.findById(record.id) ?: record
-        val thumbnail = (parsed as? EpubParsedBook)?.coverFile?.let { coverCache.createThumbnail(record.id, it) }
-        books.upsert(
-            currentRecord.copy(
-                title = parsed.metadata.title,
-                author = parsed.metadata.author,
-                format = parsed.metadata.format,
-                coverCachePath = thumbnail?.toString() ?: currentRecord.coverCachePath,
-                encoding = (parsed as? TxtParsedBook)?.index?.charsetName ?: record.encoding,
-            ),
-        )
-        books.markOpened(record.id, System.currentTimeMillis())
-        if (record.contentHash == null) scheduleFullHash(record.id, file)
-        val refreshed = books.findById(record.id) ?: record
-        return OpenedBook(refreshed, parsed, progress.find(record.id))
+        return try {
+            if (parsed is TxtParsedBook) books.updateEncoding(record.id, parsed.index.charsetName)
+            val navigation = parser.buildNavigation(parsed)
+            books.replaceChapters(record.id, navigation)
+            val currentRecord = books.findById(record.id) ?: record
+            val thumbnail = (parsed as? EpubParsedBook)?.coverFile?.let { coverCache.createThumbnail(record.id, it) }
+            books.upsert(
+                currentRecord.copy(
+                    title = parsed.metadata.title,
+                    author = parsed.metadata.author,
+                    format = parsed.metadata.format,
+                    coverCachePath = thumbnail?.toString() ?: currentRecord.coverCachePath,
+                    encoding = (parsed as? TxtParsedBook)?.index?.charsetName ?: record.encoding,
+                ),
+            )
+            books.markOpened(record.id, System.currentTimeMillis())
+            if (record.contentHash == null) scheduleFullHash(record.id, file)
+            val refreshed = books.findById(record.id) ?: record
+            OpenedBook(refreshed, parsed, progress.find(record.id))
+        } catch (exception: Exception) {
+            runCatching { parsed.close() }
+                .onFailure { logger<BookLibraryService>().warn("Failed to close a partially opened book", it) }
+            throw exception
+        }
     }
 
     private fun scheduleFullHash(bookId: String, file: Path) {

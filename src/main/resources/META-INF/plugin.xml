@@ -4,7 +4,7 @@
     <vendor>yinxi</vendor>
     <description><![CDATA[
         <p>A private, local-first electronic book reader integrated into JetBrains IDEs.</p>
-        <p>Edge Reader provides a collapsible reading shelf with secure EPUB and large-file TXT reading, chapter navigation, and progress restoration.</p>
+        <p>Edge Reader provides a collapsible reading shelf with secure EPUB, large-file TXT, and bounded on-demand PDF reading, navigation, search, and progress restoration.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -45,6 +45,16 @@
             class="com.yinxi.edgereader.actions.PreviousChapterAction"
             text="Edge Reader: Previous Chapter"
             description="Jump to the previous chapter"/>
+        <action
+            id="com.yinxi.edgereader.actions.NextPage"
+            class="com.yinxi.edgereader.actions.NextPageAction"
+            text="Edge Reader: Next Page"
+            description="Show the next PDF page"/>
+        <action
+            id="com.yinxi.edgereader.actions.PreviousPage"
+            class="com.yinxi.edgereader.actions.PreviousPageAction"
+            text="Edge Reader: Previous Page"
+            description="Show the previous PDF page"/>
         <action
             id="com.yinxi.edgereader.actions.BackToLibrary"
             class="com.yinxi.edgereader.actions.BackToLibraryAction"
