@@ -12,6 +12,7 @@ import javax.swing.JComponent
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 import javax.swing.ListSelectionModel
+import com.intellij.util.ui.JBUI
 
 class ChapterChooserDialog(
     project: Project,
@@ -26,13 +27,18 @@ class ChapterChooserDialog(
                 index: Int,
                 isSelected: Boolean,
                 cellHasFocus: Boolean,
-            ): java.awt.Component = super.getListCellRendererComponent(
-                list,
-                (value as? BookNavigationItem)?.title ?: value,
-                index,
-                isSelected,
-                cellHasFocus,
-            )
+            ): java.awt.Component {
+                val item = value as? BookNavigationItem
+                val component = super.getListCellRendererComponent(
+                    list,
+                    item?.title ?: value,
+                    index,
+                    isSelected,
+                    cellHasFocus,
+                )
+                border = JBUI.Borders.empty(5, 8 + ((item?.level ?: 1) - 1).coerceAtLeast(0) * 16)
+                return component
+            }
         }
         if (model.size > 0) selectedIndex = 0
         addMouseListener(object : MouseAdapter() {

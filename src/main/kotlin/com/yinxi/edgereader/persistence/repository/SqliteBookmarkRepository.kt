@@ -31,14 +31,14 @@ class SqliteBookmarkRepository(
     override fun save(bookmark: Bookmark) {
         database.transaction { connection ->
             connection.prepareStatement(
-            "INSERT OR REPLACE INTO bookmarks(id, book_id, locator_json, title, excerpt, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO bookmarks(id, book_id, locator_json, title, excerpt, created_at) VALUES (?, ?, ?, ?, ?, ?)",
             ).use { statement ->
                 statement.setString(1, bookmark.id)
-            statement.setString(2, bookmark.bookId)
-            statement.setString(3, bookmark.locatorJson)
-            statement.setString(4, bookmark.title)
-            statement.setString(5, bookmark.excerpt)
-            statement.setLong(6, bookmark.createdAt)
+                statement.setString(2, bookmark.bookId)
+                statement.setString(3, bookmark.locatorJson)
+                statement.setString(4, bookmark.title)
+                statement.setString(5, bookmark.excerpt)
+                statement.setLong(6, bookmark.createdAt)
                 statement.executeUpdate()
             }
         }

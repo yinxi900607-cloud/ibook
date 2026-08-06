@@ -23,4 +23,6 @@ class EdgeReaderToolWindowController(
     fun nextPage() = panel?.nextPage()
     fun previousPage() = panel?.previousPage()
     fun backToLibrary() = panel?.backToLibrary()
+    fun addBookmark() = panel?.addBookmark()
+    fun showSearch() = panel?.showSearch()
 }

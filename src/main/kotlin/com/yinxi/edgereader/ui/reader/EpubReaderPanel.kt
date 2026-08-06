@@ -26,6 +26,9 @@ class EpubReaderPanel(
     private val onBack: () -> Unit,
     private val onOpen: () -> Unit,
     private val onChooseChapter: () -> Unit,
+    private val onSearch: () -> Unit,
+    private val onShowBookmarks: () -> Unit,
+    private val onAddBookmark: () -> Unit,
     private val onSettings: () -> Unit,
     private val onRequestChapter: (Int, ReadingLocator.EpubLocator?) -> Unit,
     private val onNavigateLink: (String) -> Unit,
@@ -129,6 +132,17 @@ class EpubReaderPanel(
 
     fun hasLoadedChapter(): Boolean = currentChapter != null
 
+    fun currentChapterTitle(): String? = currentChapter?.title
+
+    fun currentExcerpt(): String? {
+        val chapter = currentChapter ?: return null
+        val offset = (currentLocator().normalizedTextOffset ?: 0).coerceIn(0, chapter.visibleText.length)
+        return chapter.visibleText.substring(
+            (offset - 40).coerceAtLeast(0),
+            (offset + 100).coerceAtMost(chapter.visibleText.length),
+        ).trim()
+    }
+
     private fun requestChapter(index: Int, locator: ReadingLocator.EpubLocator?) {
         if (loading) return
         loading = true
@@ -212,6 +226,9 @@ class EpubReaderPanel(
             EdgeReaderUi.action("Back to Library", EdgeReaderIcons.Library, perform = onBack),
             EdgeReaderUi.action("Open Book", EdgeReaderIcons.Open, perform = onOpen),
             EdgeReaderUi.action("Table of Contents", EdgeReaderIcons.Contents, perform = onChooseChapter),
+            EdgeReaderUi.action("Search", EdgeReaderIcons.Search, perform = onSearch),
+            EdgeReaderUi.action("Bookmarks", EdgeReaderIcons.Bookmark, perform = onShowBookmarks),
+            EdgeReaderUi.action("Add Bookmark", EdgeReaderIcons.AddBookmark, perform = onAddBookmark),
             EdgeReaderUi.action("Reading Settings", EdgeReaderIcons.Settings, perform = onSettings),
         ),
     )

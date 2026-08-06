@@ -16,6 +16,8 @@ object EdgeReaderIcons {
     @JvmField val ZoomIn = icon("zoomIn")
     @JvmField val ZoomOut = icon("zoomOut")
     @JvmField val FitWidth = icon("fitWidth")
+    @JvmField val Bookmark = icon("bookmark")
+    @JvmField val AddBookmark = icon("addBookmark")
 
     private fun icon(name: String) = IconLoader.getIcon("/icons/actions/$name.svg", EdgeReaderIcons::class.java)
 }

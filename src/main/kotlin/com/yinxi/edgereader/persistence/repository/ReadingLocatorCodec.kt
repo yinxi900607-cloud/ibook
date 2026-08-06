@@ -7,7 +7,7 @@ object ReadingLocatorCodec {
         is ReadingLocator.TextLocator -> """{"type":"text","characterOffset":${locator.characterOffset},"paragraphIndex":${locator.paragraphIndex ?: "null"},"scrollRatio":${locator.scrollRatio ?: "null"}}"""
         is ReadingLocator.EpubLocator -> """{"type":"epub","spineItemId":${stringOrNull(locator.spineItemId)},"chapterHref":${quoted(locator.chapterHref)},"elementId":${stringOrNull(locator.elementId)},"normalizedTextOffset":${locator.normalizedTextOffset ?: "null"},"scrollRatio":${locator.scrollRatio ?: "null"}}"""
         is ReadingLocator.PdfLocator -> """{"type":"pdf","pageIndex":${locator.pageIndex},"verticalRatio":${locator.verticalRatio},"zoomMode":${stringOrNull(locator.zoomMode)},"zoomScale":${locator.zoomScale ?: "null"}}"""
-        is ReadingLocator.HtmlLocator -> throw IllegalArgumentException("HTML locators are not enabled in Phase 1")
+        is ReadingLocator.HtmlLocator -> """{"type":"html","documentPath":${stringOrNull(locator.documentPath)},"elementId":${stringOrNull(locator.elementId)},"normalizedTextOffset":${locator.normalizedTextOffset ?: "null"},"scrollRatio":${locator.scrollRatio ?: "null"}}"""
     }
 
     fun decode(json: String): ReadingLocator {
@@ -30,6 +30,12 @@ object ReadingLocatorCodec {
                 verticalRatio = doubleValue(json, "verticalRatio") ?: 0.0,
                 zoomMode = stringValue(json, "zoomMode"),
                 zoomScale = doubleValue(json, "zoomScale"),
+            )
+            "html" -> ReadingLocator.HtmlLocator(
+                documentPath = stringValue(json, "documentPath"),
+                elementId = stringValue(json, "elementId"),
+                normalizedTextOffset = longValue(json, "normalizedTextOffset")?.toInt(),
+                scrollRatio = doubleValue(json, "scrollRatio"),
             )
             else -> throw IllegalArgumentException("Unsupported locator type: $type")
         }

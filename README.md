@@ -4,7 +4,7 @@
 
 Edge Reader is a private, local-first electronic book reader integrated into JetBrains IDEs.
 
-The current TXT, EPUB, and PDF reader provides:
+The current TXT, EPUB, PDF, Markdown, and local HTML reader provides:
 
 - A collapsible right-side Tool Window and shared local library.
 - UTF-8, UTF-16 LE/BE, GB18030, GBK, and Big5 handling with an encoding fallback dialog.
@@ -18,6 +18,10 @@ The current TXT, EPUB, and PDF reader provides:
 - PDFBox-based file-backed PDF loading, page rendering, outline navigation, page jumps, and text search.
 - Current-page plus adjacent-page rendering with a bounded LRU image cache, fit-width mode, and 50%–400% zoom.
 - Stable PDF restoration by page, vertical ratio, and zoom; image-only scanned PDFs remain readable without OCR.
+- CommonMark-based Markdown rendering with heading navigation, code blocks, local images, links, and progress restoration.
+- Sanitized local HTML reading with heading navigation, stable element/text/scroll locators, and local-resource containment.
+- Cancellable, debounced cross-format search for TXT, EPUB, PDF, Markdown, and HTML.
+- SQLite-backed bookmarks with current-position capture, excerpts, listing, deletion, and jump restoration.
 - Compact JetBrains-native toolbars and theme-aware reading surfaces with light, dark, sepia, and soft-green themes.
 
 ## Requirements
@@ -47,4 +51,4 @@ For local development against an already installed IDE, pass
 - Choose <kbd>Install Plugin from Disk…</kbd> and select the ZIP in `build/distributions/`.
 - Open the right-side <kbd>Edge Reader</kbd> Tool Window, or press <kbd>Option+R</kbd> on macOS / <kbd>Alt+R</kbd> on Windows and Linux.
 
-Markdown, standalone HTML, cross-format search UI, and bookmarks are intentionally deferred to later development phases.
+All book files, reading progress, bookmarks, and caches remain local to the JetBrains IDE system directory. HTML and Markdown scripts, frames, forms, remote resources, and out-of-root local resources are blocked.

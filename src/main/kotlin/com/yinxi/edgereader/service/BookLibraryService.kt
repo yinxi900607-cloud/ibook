@@ -11,7 +11,6 @@ import com.yinxi.edgereader.parser.BookOpenContext
 import com.yinxi.edgereader.parser.BookParserRegistry
 import com.yinxi.edgereader.parser.epub.EpubChapterContent
 import com.yinxi.edgereader.parser.epub.EpubParsedBook
-import com.yinxi.edgereader.parser.pdf.PdfBookParser
 import com.yinxi.edgereader.parser.pdf.PdfParsedBook
 import com.yinxi.edgereader.parser.pdf.PdfRenderedPage
 import com.yinxi.edgereader.parser.pdf.PdfZoomMode
@@ -138,18 +137,19 @@ class BookLibraryService(
         }
     }
 
-    fun searchPdf(
+    fun searchBook(
         book: OpenedBook,
         query: String,
         options: SearchOptions = SearchOptions(),
         callback: (Result<List<SearchResult>>) -> Unit,
     ): Job = coroutineScope.launch(Dispatchers.IO) {
         val result = try {
-            Result.success(PdfBookParser().search(book.parsedBook, query, options))
+            val parser = requireNotNull(registry.findParser(book.parsedBook.file)) { "Unsupported book format" }
+            Result.success(parser.search(book.parsedBook, query, options))
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            logger<BookLibraryService>().warn("PDF search failed", exception)
+            logger<BookLibraryService>().warn("Book search failed", exception)
             Result.failure(exception)
         }
         deliver(callback, result)

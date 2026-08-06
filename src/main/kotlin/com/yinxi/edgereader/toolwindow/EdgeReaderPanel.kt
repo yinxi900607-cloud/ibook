@@ -12,6 +12,7 @@ import com.yinxi.edgereader.model.BookNavigationItem
 import com.yinxi.edgereader.model.BookRecord
 import com.yinxi.edgereader.model.ReadingLocator
 import com.yinxi.edgereader.parser.epub.EpubParsedBook
+import com.yinxi.edgereader.parser.html.HtmlParsedBook
 import com.yinxi.edgereader.parser.pdf.InvalidPdfException
 import com.yinxi.edgereader.parser.pdf.PdfParsedBook
 import com.yinxi.edgereader.parser.pdf.PdfZoomMode
@@ -20,17 +21,22 @@ import com.yinxi.edgereader.parser.txt.TxtParsedBook
 import com.yinxi.edgereader.persistence.repository.ReadingLocatorCodec
 import com.yinxi.edgereader.persistence.settings.ReaderSettingsService
 import com.yinxi.edgereader.service.BookLibraryService
+import com.yinxi.edgereader.service.BookmarkService
 import com.yinxi.edgereader.service.OpenedBook
 import com.yinxi.edgereader.service.ReadingProgressService
+import com.yinxi.edgereader.security.ResourceAccessPolicy
 import com.yinxi.edgereader.ui.EdgeReaderNotifications
 import com.yinxi.edgereader.ui.library.LibraryPanel
 import com.yinxi.edgereader.ui.reader.ChapterChooserDialog
 import com.yinxi.edgereader.ui.reader.EpubReaderPanel
+import com.yinxi.edgereader.ui.reader.HtmlReaderPanel
 import com.yinxi.edgereader.ui.reader.PdfReaderPanel
-import com.yinxi.edgereader.ui.reader.PdfSearchDialog
 import com.yinxi.edgereader.ui.reader.TxtReaderPanel
 import com.yinxi.edgereader.ui.settings.EncodingChooserDialog
 import com.yinxi.edgereader.ui.settings.ReaderSettingsDialog
+import com.yinxi.edgereader.ui.bookmark.BookmarkDialog
+import com.yinxi.edgereader.ui.search.BookSearchDialog
+import com.yinxi.edgereader.util.SupportedBookFiles
 import java.awt.CardLayout
 import java.awt.event.HierarchyEvent
 import java.net.URI
@@ -46,6 +52,7 @@ class EdgeReaderPanel(
     private val readerContainer = JBPanel<JBPanel<*>>(readerCards)
     private val libraryService = service<BookLibraryService>()
     private val progressService = service<ReadingProgressService>()
+    private val bookmarkService = service<BookmarkService>()
     private val settings = service<ReaderSettingsService>()
     private val libraryPanel = LibraryPanel(
         onOpenFile = ::chooseBook,
@@ -58,6 +65,9 @@ class EdgeReaderPanel(
         onBack = ::backToLibrary,
         onOpen = ::chooseBook,
         onChooseChapter = ::chooseChapter,
+        onSearch = ::showSearch,
+        onShowBookmarks = ::showBookmarks,
+        onAddBookmark = ::addBookmark,
         onSettings = ::showSettings,
         onRequestSlice = ::loadTextSlice,
         onLocationChanged = ::onTextLocationChanged,
@@ -66,6 +76,9 @@ class EdgeReaderPanel(
         onBack = ::backToLibrary,
         onOpen = ::chooseBook,
         onChooseChapter = ::chooseChapter,
+        onSearch = ::showSearch,
+        onShowBookmarks = ::showBookmarks,
+        onAddBookmark = ::addBookmark,
         onSettings = ::showSettings,
         onRequestChapter = ::loadEpubChapter,
         onNavigateLink = ::navigateEpubLink,
@@ -75,10 +88,23 @@ class EdgeReaderPanel(
         onBack = ::backToLibrary,
         onOpen = ::chooseBook,
         onChooseChapter = ::chooseChapter,
-        onSearch = ::showPdfSearch,
+        onSearch = ::showSearch,
+        onShowBookmarks = ::showBookmarks,
+        onAddBookmark = ::addBookmark,
         onSettings = ::showSettings,
         onRequestPage = ::loadPdfPage,
         onLocationChanged = ::onPdfLocationChanged,
+    )
+    private val htmlReaderPanel = HtmlReaderPanel(
+        onBack = ::backToLibrary,
+        onOpen = ::chooseBook,
+        onChooseChapter = ::chooseChapter,
+        onSearch = ::showSearch,
+        onShowBookmarks = ::showBookmarks,
+        onAddBookmark = ::addBookmark,
+        onSettings = ::showSettings,
+        onNavigateLink = ::navigateHtmlLink,
+        onLocationChanged = ::onHtmlLocationChanged,
     )
     private var currentBook: OpenedBook? = null
     private var pdfRenderJob: Job? = null
@@ -90,6 +116,7 @@ class EdgeReaderPanel(
         readerContainer.add(txtReaderPanel, TXT_READER_CARD)
         readerContainer.add(epubReaderPanel, EPUB_READER_CARD)
         readerContainer.add(pdfReaderPanel, PDF_READER_CARD)
+        readerContainer.add(htmlReaderPanel, HTML_READER_CARD)
         add(libraryPanel, LIBRARY_CARD)
         add(readerContainer, READER_CARD)
         controller.attach(this)
@@ -108,12 +135,14 @@ class EdgeReaderPanel(
     fun nextChapter() = when (currentBook?.record?.format) {
         BookFormat.TXT -> txtReaderPanel.nextChapter()
         BookFormat.EPUB -> epubReaderPanel.nextChapter()
+        BookFormat.MARKDOWN, BookFormat.HTML -> htmlReaderPanel.nextSection()
         else -> Unit
     }
 
     fun previousChapter() = when (currentBook?.record?.format) {
         BookFormat.TXT -> txtReaderPanel.previousChapter()
         BookFormat.EPUB -> epubReaderPanel.previousChapter()
+        BookFormat.MARKDOWN, BookFormat.HTML -> htmlReaderPanel.previousSection()
         else -> Unit
     }
 
@@ -123,6 +152,27 @@ class EdgeReaderPanel(
 
     fun previousPage() {
         pdfReaderPanel.previousPage()
+    }
+
+    fun showSearch() {
+        val book = currentBook ?: return
+        val searchable = (book.parsedBook as? PdfParsedBook)?.hasSearchableText ?: true
+        BookSearchDialog(
+            project = project,
+            searchable = searchable,
+            onSearch = { query, callback -> libraryService.searchBook(book, query, callback = callback) },
+            onJump = { jumpTo(it.locator) },
+        ).show()
+    }
+
+    fun addBookmark() {
+        val book = currentBook ?: return
+        val position = currentBookmarkPosition(book) ?: return
+        bookmarkService.add(book.record.id, position.locator, position.title, position.excerpt) { result ->
+            result.onSuccess {
+                EdgeReaderNotifications.info(project, "Bookmark added", position.title ?: "The current position was saved.")
+            }.onFailure { showError("Unable to add bookmark", it) }
+        }
     }
 
     fun backToLibrary() {
@@ -198,6 +248,10 @@ class EdgeReaderPanel(
                 readerCards.show(readerContainer, PDF_READER_CARD)
                 pdfReaderPanel.showBook(book, locator as? ReadingLocator.PdfLocator)
             }
+            is HtmlParsedBook -> {
+                readerCards.show(readerContainer, HTML_READER_CARD)
+                htmlReaderPanel.showBook(book, locator as? ReadingLocator.HtmlLocator)
+            }
             else -> showError("Unable to open this file", IllegalArgumentException("Unsupported parsed book type"))
         }
     }
@@ -238,6 +292,10 @@ class EdgeReaderPanel(
         currentBook?.record?.id?.let { progressService.update(it, locator, chapterTitle, progressPercent) }
     }
 
+    private fun onHtmlLocationChanged(locator: ReadingLocator.HtmlLocator, chapterTitle: String?, progressPercent: Double) {
+        currentBook?.record?.id?.let { progressService.update(it, locator, chapterTitle, progressPercent) }
+    }
+
     private fun loadPdfPage(
         pageIndex: Int,
         viewportWidth: Int,
@@ -257,15 +315,27 @@ class EdgeReaderPanel(
         }
     }
 
-    private fun showPdfSearch() {
+    private fun showBookmarks() {
         val book = currentBook ?: return
-        val pdf = book.parsedBook as? PdfParsedBook ?: return
-        PdfSearchDialog(
-            project = project,
-            searchable = pdf.hasSearchableText,
-            onSearch = { query, callback -> libraryService.searchPdf(book, query, callback = callback) },
-            onJump = { result -> (result.locator as? ReadingLocator.PdfLocator)?.let(pdfReaderPanel::jumpTo) },
-        ).show()
+        bookmarkService.list(book.record.id) { result ->
+            result.onSuccess { bookmarks ->
+                BookmarkDialog(
+                    project,
+                    bookmarks,
+                    onJump = { bookmark ->
+                        runCatching { ReadingLocatorCodec.decode(bookmark.locatorJson) }
+                            .onSuccess(::jumpTo)
+                            .onFailure { showError("Unable to restore this bookmark", it) }
+                    },
+                    onDelete = { bookmark, callback ->
+                        bookmarkService.delete(bookmark.id) { deleteResult ->
+                            deleteResult.onFailure { showError("Unable to delete bookmark", it) }
+                            callback(deleteResult)
+                        }
+                    },
+                ).show()
+            }.onFailure { showError("Unable to load bookmarks", it) }
+        }
     }
 
     private fun chooseChapter() {
@@ -282,6 +352,7 @@ class EdgeReaderPanel(
         is TxtParsedBook -> parsed.index.chapters
         is EpubParsedBook -> parsed.navigation
         is PdfParsedBook -> parsed.navigation
+        is HtmlParsedBook -> parsed.content.navigation
         else -> emptyList()
     }
 
@@ -290,7 +361,7 @@ class EdgeReaderPanel(
             is ReadingLocator.TextLocator -> txtReaderPanel.jumpTo(locator.characterOffset)
             is ReadingLocator.EpubLocator -> epubReaderPanel.jumpTo(locator)
             is ReadingLocator.PdfLocator -> pdfReaderPanel.jumpTo(locator)
-            else -> Unit
+            is ReadingLocator.HtmlLocator -> htmlReaderPanel.jumpTo(locator)
         }
     }
 
@@ -302,7 +373,7 @@ class EdgeReaderPanel(
             epubReaderPanel.jumpTo(epubReaderPanel.currentLocator().copy(elementId = link.removePrefix("#")))
             return
         }
-        val path = runCatching { Path.of(uri) }.getOrNull()?.toAbsolutePath()?.normalize() ?: return
+        val path = localFilePath(uri) ?: return
         if (!path.startsWith(epub.extractionRoot.toAbsolutePath().normalize())) return
         val href = epub.extractionRoot.relativize(path).toString().replace('\\', '/')
         epubReaderPanel.jumpTo(
@@ -316,12 +387,37 @@ class EdgeReaderPanel(
         )
     }
 
+    private fun navigateHtmlLink(link: String) {
+        val parsed = currentBook?.parsedBook as? HtmlParsedBook ?: return
+        val uri = runCatching { URI(link) }.getOrNull() ?: return
+        if (link.startsWith('#')) {
+            htmlReaderPanel.jumpTo(htmlReaderPanel.currentLocator().copy(elementId = link.removePrefix("#")))
+            return
+        }
+        if (uri.scheme != "file") return
+        val path = localFilePath(uri) ?: return
+        val allowedRoot = parsed.file.parent.toAbsolutePath().normalize()
+        if (!ResourceAccessPolicy(allowedRoot).contains(path)) return
+        if (path == parsed.file.toAbsolutePath().normalize()) {
+            uri.fragment?.let { htmlReaderPanel.jumpTo(htmlReaderPanel.currentLocator().copy(elementId = it)) }
+        } else if (java.nio.file.Files.isRegularFile(path) && SupportedBookFiles.isSupported(path)) {
+            openPath(path)
+        }
+    }
+
+    private fun localFilePath(uri: URI): Path? {
+        if (uri.scheme != "file") return null
+        val pathOnly = runCatching { URI(uri.scheme, uri.authority, uri.path, null, null) }.getOrNull() ?: return null
+        return runCatching { Path.of(pathOnly).toAbsolutePath().normalize() }.getOrNull()
+    }
+
     private fun showSettings() {
         if (!ReaderSettingsDialog(project).showAndGet()) return
         when (currentBook?.record?.format) {
             BookFormat.TXT -> txtReaderPanel.applySettings()
             BookFormat.EPUB -> epubReaderPanel.applySettings()
             BookFormat.PDF -> pdfReaderPanel.applySettings()
+            BookFormat.MARKDOWN, BookFormat.HTML -> htmlReaderPanel.applySettings()
             else -> Unit
         }
     }
@@ -380,6 +476,15 @@ class EdgeReaderPanel(
                     (locator.pageIndex + locator.verticalRatio) / parsed.pageCount * 100.0
                 progressService.update(book.record.id, locator, "Page ${locator.pageIndex + 1}", percent)
             }
+            is HtmlParsedBook -> if (htmlReaderPanel.hasDocument()) {
+                val locator = htmlReaderPanel.currentLocator()
+                progressService.update(
+                    book.record.id,
+                    locator,
+                    htmlReaderPanel.currentSectionTitle(),
+                    (locator.scrollRatio ?: 0.0) * 100.0,
+                )
+            }
             else -> Unit
         }
         progressService.flushAsync(book.record.id)
@@ -387,9 +492,11 @@ class EdgeReaderPanel(
 
     private fun bookDescriptor(title: String) = FileChooserDescriptor(true, false, false, false, false, false)
         .withTitle(title)
-        .withDescription("Choose a local .txt, .text, .epub, or .pdf file. Parsing runs in the background.")
+        .withDescription("Choose a local TXT, EPUB, PDF, Markdown, or HTML file. Parsing runs in the background.")
         .withFileFilter { file ->
-            file.isDirectory || file.extension?.lowercase() in setOf("txt", "text", "epub", "pdf")
+            file.isDirectory || file.extension?.lowercase() in setOf(
+                "txt", "text", "epub", "pdf", "md", "markdown", "html", "htm", "xhtml",
+            )
         }
 
     private fun showError(title: String, exception: Throwable) {
@@ -421,5 +528,28 @@ class EdgeReaderPanel(
         private const val TXT_READER_CARD = "txt"
         private const val EPUB_READER_CARD = "epub"
         private const val PDF_READER_CARD = "pdf"
+        private const val HTML_READER_CARD = "html"
+    }
+
+    private data class BookmarkPosition(
+        val locator: ReadingLocator,
+        val title: String?,
+        val excerpt: String?,
+    )
+
+    private fun currentBookmarkPosition(book: OpenedBook): BookmarkPosition? = when (book.parsedBook) {
+        is TxtParsedBook -> if (txtReaderPanel.hasLoadedSlice()) BookmarkPosition(
+            txtReaderPanel.currentLocator(), txtReaderPanel.currentChapterTitle(), txtReaderPanel.currentExcerpt(),
+        ) else null
+        is EpubParsedBook -> if (epubReaderPanel.hasLoadedChapter()) BookmarkPosition(
+            epubReaderPanel.currentLocator(), epubReaderPanel.currentChapterTitle(), epubReaderPanel.currentExcerpt(),
+        ) else null
+        is PdfParsedBook -> if (pdfReaderPanel.hasRenderedPage()) BookmarkPosition(
+            pdfReaderPanel.currentLocator(), "Page ${pdfReaderPanel.currentLocator().pageIndex + 1}", null,
+        ) else null
+        is HtmlParsedBook -> if (htmlReaderPanel.hasDocument()) BookmarkPosition(
+            htmlReaderPanel.currentLocator(), htmlReaderPanel.currentSectionTitle(), htmlReaderPanel.currentExcerpt(),
+        ) else null
+        else -> null
     }
 }

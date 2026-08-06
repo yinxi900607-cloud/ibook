@@ -3,11 +3,13 @@ package com.yinxi.edgereader.persistence
 import com.yinxi.edgereader.model.BookFormat
 import com.yinxi.edgereader.model.BookNavigationItem
 import com.yinxi.edgereader.model.BookRecord
+import com.yinxi.edgereader.model.Bookmark
 import com.yinxi.edgereader.model.ReadingLocator
 import com.yinxi.edgereader.model.ReadingProgress
 import com.yinxi.edgereader.persistence.database.EdgeReaderDatabase
 import com.yinxi.edgereader.persistence.repository.ReadingLocatorCodec
 import com.yinxi.edgereader.persistence.repository.SqliteBookRepository
+import com.yinxi.edgereader.persistence.repository.SqliteBookmarkRepository
 import com.yinxi.edgereader.persistence.repository.SqliteProgressRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -31,6 +33,7 @@ class SqliteRepositoryTest {
         EdgeReaderDatabase(tempDirectory.resolve("repository.db")).use { database ->
             val books = SqliteBookRepository(database)
             val progress = SqliteProgressRepository(database)
+            val bookmarks = SqliteBookmarkRepository(database)
             val book = sampleBook()
             books.upsert(book)
 
@@ -54,6 +57,12 @@ class SqliteRepositoryTest {
             val chapters = listOf(BookNavigationItem("第一章", locator))
             books.replaceChapters(book.id, chapters)
             assertEquals(chapters, books.loadChapters(book.id))
+
+            val bookmark = Bookmark("bookmark-1", book.id, ReadingLocatorCodec.encode(locator), "第一章", "测试片段", 3000)
+            bookmarks.save(bookmark)
+            assertEquals(listOf(bookmark), bookmarks.list(book.id))
+            bookmarks.delete(bookmark.id)
+            assertEquals(emptyList<Bookmark>(), bookmarks.list(book.id))
 
             books.delete(book.id)
             assertNull(books.findById(book.id))

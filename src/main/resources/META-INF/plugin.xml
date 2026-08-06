@@ -4,7 +4,7 @@
     <vendor>yinxi</vendor>
     <description><![CDATA[
         <p>A private, local-first electronic book reader integrated into JetBrains IDEs.</p>
-        <p>Edge Reader provides a collapsible reading shelf with secure EPUB, large-file TXT, and bounded on-demand PDF reading, navigation, search, and progress restoration.</p>
+        <p>Edge Reader provides a collapsible reading shelf with secure EPUB, large-file TXT, bounded PDF, Markdown, and local HTML reading, navigation, search, bookmarks, and progress restoration.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -60,5 +60,15 @@
             class="com.yinxi.edgereader.actions.BackToLibraryAction"
             text="Edge Reader: Back to Library"
             description="Return to the Edge Reader library"/>
+        <action
+            id="com.yinxi.edgereader.actions.AddBookmark"
+            class="com.yinxi.edgereader.actions.AddBookmarkAction"
+            text="Edge Reader: Add Bookmark"
+            description="Save the current reading position"/>
+        <action
+            id="com.yinxi.edgereader.actions.FocusSearch"
+            class="com.yinxi.edgereader.actions.FocusSearchAction"
+            text="Edge Reader: Search Current Book"
+            description="Search within the current book"/>
     </actions>
 </idea-plugin>

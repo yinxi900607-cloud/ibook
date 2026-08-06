@@ -27,6 +27,9 @@ class TxtReaderPanel(
     private val onBack: () -> Unit,
     private val onOpen: () -> Unit,
     private val onChooseChapter: () -> Unit,
+    private val onSearch: () -> Unit,
+    private val onShowBookmarks: () -> Unit,
+    private val onAddBookmark: () -> Unit,
     private val onSettings: () -> Unit,
     private val onRequestSlice: (startOffset: Long, focusOffset: Long) -> Unit,
     private val onLocationChanged: (ReadingLocator.TextLocator, String?, Double) -> Unit,
@@ -145,6 +148,19 @@ class TxtReaderPanel(
 
     fun hasLoadedSlice(): Boolean = currentSlice != null
 
+    fun currentChapterTitle(): String? {
+        val book = openedBook ?: return null
+        val offset = currentGlobalOffset()
+        return (book.parsedBook as TxtParsedBook).index.chapters.lastOrNull { it.offset() <= offset }?.title
+    }
+
+    fun currentExcerpt(): String? {
+        val slice = currentSlice ?: return null
+        if (slice.text.isEmpty()) return null
+        val relative = (currentGlobalOffset() - slice.startOffset).toInt().coerceIn(0, slice.text.length)
+        return slice.text.substring((relative - 40).coerceAtLeast(0), (relative + 100).coerceAtMost(slice.text.length)).trim()
+    }
+
     private fun createTopToolbar() = EdgeReaderUi.header(
         titleLabel,
         EdgeReaderUi.toolbar(
@@ -153,6 +169,9 @@ class TxtReaderPanel(
             EdgeReaderUi.action("Back to Library", EdgeReaderIcons.Library, perform = onBack),
             EdgeReaderUi.action("Open Book", EdgeReaderIcons.Open, perform = onOpen),
             EdgeReaderUi.action("Table of Contents", EdgeReaderIcons.Contents, perform = onChooseChapter),
+            EdgeReaderUi.action("Search", EdgeReaderIcons.Search, perform = onSearch),
+            EdgeReaderUi.action("Bookmarks", EdgeReaderIcons.Bookmark, perform = onShowBookmarks),
+            EdgeReaderUi.action("Add Bookmark", EdgeReaderIcons.AddBookmark, perform = onAddBookmark),
             EdgeReaderUi.action("Reading Settings", EdgeReaderIcons.Settings, perform = onSettings),
         ),
     )

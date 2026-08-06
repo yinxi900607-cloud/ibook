@@ -30,6 +30,8 @@ class PdfReaderPanel(
     private val onOpen: () -> Unit,
     private val onChooseChapter: () -> Unit,
     private val onSearch: () -> Unit,
+    private val onShowBookmarks: () -> Unit,
+    private val onAddBookmark: () -> Unit,
     private val onSettings: () -> Unit,
     private val onRequestPage: (Int, Int, PdfZoomMode, Float, Long) -> Unit,
     private val onLocationChanged: (ReadingLocator.PdfLocator, String?, Double) -> Unit,
@@ -226,6 +228,8 @@ class PdfReaderPanel(
             EdgeReaderUi.action("Open Book", EdgeReaderIcons.Open, perform = onOpen),
             EdgeReaderUi.action("Table of Contents", EdgeReaderIcons.Contents, perform = onChooseChapter),
             EdgeReaderUi.action("Search PDF", EdgeReaderIcons.Search, perform = onSearch),
+            EdgeReaderUi.action("Bookmarks", EdgeReaderIcons.Bookmark, perform = onShowBookmarks),
+            EdgeReaderUi.action("Add Bookmark", EdgeReaderIcons.AddBookmark, perform = onAddBookmark),
             EdgeReaderUi.action("Reading Settings", EdgeReaderIcons.Settings, perform = onSettings),
         ),
     )

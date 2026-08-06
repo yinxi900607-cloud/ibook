@@ -31,3 +31,8 @@
 - Background current/adjacent page rendering, bounded LRU image cache, page jump, fit-width, and custom zoom.
 - PDF page/vertical-position/zoom persistence and compatibility for image-only scanned PDFs without OCR.
 - Next Page and Previous Page Keymap actions.
+- CommonMark Markdown parsing with heading navigation, code blocks, safe local images and links, and stable reading restoration.
+- Sanitized local HTML parsing and reading with script/frame/form removal, remote-resource blocking, and symlink-aware local path containment.
+- Debounced, cancellable search dialog shared by TXT, EPUB, PDF, Markdown, and HTML readers.
+- SQLite-backed bookmark creation, listing, deletion, and stable locator restoration for all reader formats.
+- Add Bookmark and Search Current Book actions for customizable IDE Keymaps.

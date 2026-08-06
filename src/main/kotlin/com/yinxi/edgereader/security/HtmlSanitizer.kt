@@ -17,18 +17,35 @@ data class SanitizedHtml(
 
 class HtmlSanitizer(
     private val extractionRoot: Path,
+    private val allowLocalStyleSheets: Boolean = true,
 ) {
     private val access = ResourceAccessPolicy(extractionRoot)
 
     fun sanitize(sourceFile: Path): SanitizedHtml {
         require(access.contains(sourceFile)) { "HTML document is outside the EPUB cache" }
         val source = Files.readString(sourceFile, StandardCharsets.UTF_8)
-        val document = Jsoup.parse(source, sourceFile.toUri().toString(), Parser.xmlParser())
+        return sanitize(source, sourceFile, xml = true)
+    }
+
+    fun sanitizeHtml(sourceFile: Path): SanitizedHtml {
+        require(access.contains(sourceFile)) { "HTML document is outside the allowed directory" }
+        return sanitize(Files.readString(sourceFile, StandardCharsets.UTF_8), sourceFile, xml = false)
+    }
+
+    fun sanitizeGeneratedHtml(html: String, sourceFile: Path): SanitizedHtml {
+        require(access.contains(sourceFile)) { "HTML document is outside the allowed directory" }
+        return sanitize(html, sourceFile, xml = false)
+    }
+
+    private fun sanitize(source: String, sourceFile: Path, xml: Boolean): SanitizedHtml {
+        val parser = if (xml) Parser.xmlParser() else Parser.htmlParser()
+        val document = Jsoup.parse(source, sourceFile.toUri().toString(), parser)
         document.childNodes()
             .filter { it is XmlDeclaration || it is DocumentType }
             .forEach { it.remove() }
         document.outputSettings().syntax(Document.OutputSettings.Syntax.html)
         removeDangerousContent(document, sourceFile)
+        if (!allowLocalStyleSheets) document.select("link[rel=stylesheet]").remove()
         rewriteResources(document, sourceFile)
         ensureDocumentStructure(document)
         return SanitizedHtml(document.outerHtml(), document.text())
@@ -45,14 +62,23 @@ class HtmlSanitizer(
     }
 
     private fun removeDangerousContent(document: Document, sourceFile: Path) {
-        document.select("script, iframe, frame, frameset, object, embed, applet, form, input, button, textarea, select, meta[http-equiv]")
+        document.select("script, iframe, frame, frameset, object, embed, applet, base, form, input, button, textarea, select, meta[http-equiv]")
             .remove()
         document.allElements.forEach { element ->
             val unsafe = element.attributes().asList().map { it.key }.filter {
-                it.startsWith("on", true) || it.equals("srcdoc", true) || it.equals("formaction", true)
+                it.startsWith("on", true) || it.equals("srcdoc", true) || it.equals("formaction", true) ||
+                    it.equals("background", true) || it.equals("poster", true) || it.equals("xlink:href", true)
             }
             unsafe.forEach(element::removeAttr)
+            element.attributes().asList().filter {
+                val value = it.value.trim().lowercase()
+                value.startsWith("javascript:") || value.startsWith("vbscript:")
+            }.forEach { element.removeAttr(it.key) }
             element.attr("style").takeIf { it.isNotBlank() }?.let { element.attr("style", sanitizeCss(it, sourceFile)) }
+        }
+        document.select("style").forEach { style ->
+            val safeCss = sanitizeCss(style.data(), sourceFile)
+            style.empty().appendText(safeCss)
         }
     }
 
