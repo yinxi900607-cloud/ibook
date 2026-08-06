@@ -53,6 +53,8 @@ class EpubBookParserTest {
         assertFalse(lower.contains("<script"))
         assertFalse(lower.contains("<iframe"))
         assertFalse(lower.contains("onclick"))
+        assertFalse(lower.contains("?xml"))
+        assertTrue(chapter.html.trimStart().startsWith("<html", ignoreCase = true))
         assertFalse(lower.contains("https://example.invalid"))
         assertTrue(chapter.html.contains("pixel.png"))
         assertTrue(chapter.html.contains("main.css"))

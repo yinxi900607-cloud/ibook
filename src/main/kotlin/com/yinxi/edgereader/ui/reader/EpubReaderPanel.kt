@@ -10,10 +10,12 @@ import com.yinxi.edgereader.parser.epub.EpubChapterContent
 import com.yinxi.edgereader.parser.epub.EpubParsedBook
 import com.yinxi.edgereader.persistence.settings.ReaderSettingsService
 import com.yinxi.edgereader.service.OpenedBook
+import com.yinxi.edgereader.ui.EdgeReaderIcons
+import com.yinxi.edgereader.ui.EdgeReaderUi
+import com.yinxi.edgereader.ui.settings.ReaderTheme
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Point
-import javax.swing.JButton
 import javax.swing.JEditorPane
 import javax.swing.SwingUtilities
 import javax.swing.event.HyperlinkEvent
@@ -56,6 +58,9 @@ class EpubReaderPanel(
         add(createTopToolbar(), BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
         add(createStatusBar(), BorderLayout.SOUTH)
+        EdgeReaderUi.secondary(chapterLabel)
+        EdgeReaderUi.secondary(positionLabel)
+        EdgeReaderUi.secondary(progressLabel)
         scrollPane.verticalScrollBar.addAdjustmentListener {
             if (!programmaticScroll && !loading) publishLocation()
         }
@@ -65,6 +70,7 @@ class EpubReaderPanel(
         openedBook = book
         currentChapter = null
         titleLabel.text = book.record.title
+        titleLabel.toolTipText = book.record.title
         val epub = book.parsedBook as EpubParsedBook
         currentChapterIndex = locator?.let { epub.chapterIndex(it.chapterHref, it.spineItemId) } ?: 0
         requestChapter(currentChapterIndex, locator)
@@ -134,12 +140,18 @@ class EpubReaderPanel(
 
     private fun createEditorKit(): HTMLEditorKit {
         val state = service<ReaderSettingsService>().state
+        val palette = ReaderTheme.fromStored(state.theme).palette()
+        editorPane.background = palette.background
+        editorPane.foreground = palette.foreground
+        scrollPane.viewport.background = palette.background
         return HTMLEditorKit().apply {
             styleSheet.addRule(
                 "body { font-family: '${state.fontFamily.replace("'", "")}' ; font-size: ${state.fontSize.coerceIn(12, 36)}pt; " +
                     "line-height: ${state.lineSpacing.coerceIn(1.0f, 2.5f)}; " +
+                    "color: ${palette.foregroundCss()}; background-color: ${palette.backgroundCss()}; " +
                     "margin-left: ${state.horizontalMargin.coerceIn(8, 80)}px; margin-right: ${state.horizontalMargin.coerceIn(8, 80)}px; }",
             )
+            styleSheet.addRule("p { margin-top: 0; margin-bottom: ${state.paragraphSpacing.coerceIn(0, 32)}px; }")
             styleSheet.addRule("img { max-width: 100%; }")
         }
     }
@@ -192,27 +204,30 @@ class EpubReaderPanel(
         return if (range <= 0) 0.0 else bar.value.toDouble() / range
     }
 
-    private fun createTopToolbar(): JBPanel<*> = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-            add(JButton("Library").apply { addActionListener { onBack() } })
-            add(JButton("Open").apply { addActionListener { onOpen() } })
-            add(JButton("Contents").apply { addActionListener { onChooseChapter() } })
-            add(JButton("Reading Settings").apply { addActionListener { onSettings() } })
-        }, BorderLayout.WEST)
-        add(titleLabel, BorderLayout.EAST)
-    }
+    private fun createTopToolbar() = EdgeReaderUi.header(
+        titleLabel,
+        EdgeReaderUi.toolbar(
+            "EdgeReader.Epub.Header",
+            this,
+            EdgeReaderUi.action("Back to Library", EdgeReaderIcons.Library, perform = onBack),
+            EdgeReaderUi.action("Open Book", EdgeReaderIcons.Open, perform = onOpen),
+            EdgeReaderUi.action("Table of Contents", EdgeReaderIcons.Contents, perform = onChooseChapter),
+            EdgeReaderUi.action("Reading Settings", EdgeReaderIcons.Settings, perform = onSettings),
+        ),
+    )
 
-    private fun createStatusBar(): JBPanel<*> = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4, 6)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+    private fun createStatusBar() = EdgeReaderUi.footer(
+        JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+            isOpaque = false
             add(chapterLabel)
             add(positionLabel)
             add(progressLabel)
-        }, BorderLayout.WEST)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.RIGHT, 4, 0)).apply {
-            add(JButton("Previous Chapter").apply { addActionListener { previousChapter() } })
-            add(JButton("Next Chapter").apply { addActionListener { nextChapter() } })
-        }, BorderLayout.EAST)
-    }
+        },
+        EdgeReaderUi.toolbar(
+            "EdgeReader.Epub.Navigation",
+            this,
+            EdgeReaderUi.action("Previous Chapter", EdgeReaderIcons.Previous, perform = ::previousChapter),
+            EdgeReaderUi.action("Next Chapter", EdgeReaderIcons.Next, perform = ::nextChapter),
+        ),
+    )
 }

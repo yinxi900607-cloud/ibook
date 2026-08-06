@@ -4,7 +4,6 @@ import com.intellij.openapi.components.service
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBUI
 import com.yinxi.edgereader.model.BookNavigationItem
 import com.yinxi.edgereader.model.ReadingLocator
@@ -12,12 +11,17 @@ import com.yinxi.edgereader.parser.txt.TextSlice
 import com.yinxi.edgereader.parser.txt.TxtParsedBook
 import com.yinxi.edgereader.persistence.settings.ReaderSettingsService
 import com.yinxi.edgereader.service.OpenedBook
+import com.yinxi.edgereader.ui.EdgeReaderIcons
+import com.yinxi.edgereader.ui.EdgeReaderUi
+import com.yinxi.edgereader.ui.settings.ReaderTheme
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.Font
 import java.awt.Point
-import javax.swing.JButton
 import javax.swing.SwingUtilities
+import javax.swing.JTextPane
+import javax.swing.text.SimpleAttributeSet
+import javax.swing.text.StyleConstants
 
 class TxtReaderPanel(
     private val onBack: () -> Unit,
@@ -31,10 +35,8 @@ class TxtReaderPanel(
     private val chapterLabel = JBLabel("—")
     private val positionLabel = JBLabel("0 / 0")
     private val progressLabel = JBLabel("0.0%")
-    private val textArea = JBTextArea().apply {
+    private val textArea = JTextPane().apply {
         isEditable = false
-        lineWrap = true
-        wrapStyleWord = true
         border = JBUI.Borders.empty(12)
     }
     private val scrollPane = JBScrollPane(textArea)
@@ -49,6 +51,9 @@ class TxtReaderPanel(
         add(createTopToolbar(), BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
         add(createStatusBar(), BorderLayout.SOUTH)
+        EdgeReaderUi.secondary(chapterLabel)
+        EdgeReaderUi.secondary(positionLabel)
+        EdgeReaderUi.secondary(progressLabel)
         scrollPane.verticalScrollBar.addAdjustmentListener { event ->
             if (!programmaticScroll) onScrolled(event.value)
             previousScrollValue = event.value
@@ -63,6 +68,7 @@ class TxtReaderPanel(
         textArea.text = "Loading text index…"
         programmaticScroll = false
         titleLabel.text = book.record.title
+        titleLabel.toolTipText = book.record.title
         applySettings()
         jumpTo(initialOffset)
     }
@@ -72,6 +78,7 @@ class TxtReaderPanel(
         loading = false
         programmaticScroll = true
         textArea.text = slice.text
+        applySettings()
         val caret = (focusOffset - slice.startOffset).coerceIn(0, slice.text.length.toLong()).toInt()
         textArea.caretPosition = caret
         SwingUtilities.invokeLater {
@@ -94,6 +101,16 @@ class TxtReaderPanel(
         val family = state.fontFamily.ifBlank { textArea.font.family }
         textArea.font = Font(family, Font.PLAIN, state.fontSize.coerceIn(12, 36))
         textArea.border = JBUI.Borders.empty(12, state.horizontalMargin.coerceIn(8, 80))
+        val palette = ReaderTheme.fromStored(state.theme).palette()
+        textArea.background = palette.background
+        textArea.foreground = palette.foreground
+        textArea.caretColor = palette.foreground
+        scrollPane.viewport.background = palette.background
+        val paragraph = SimpleAttributeSet().apply {
+            StyleConstants.setLineSpacing(this, state.lineSpacing.coerceIn(1.0f, 2.5f) - 1f)
+            StyleConstants.setSpaceBelow(this, state.paragraphSpacing.coerceIn(0, 32).toFloat())
+        }
+        textArea.styledDocument.setParagraphAttributes(0, textArea.document.length, paragraph, false)
         revalidate()
         repaint()
     }
@@ -128,29 +145,32 @@ class TxtReaderPanel(
 
     fun hasLoadedSlice(): Boolean = currentSlice != null
 
-    private fun createTopToolbar(): JBPanel<*> = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-            add(JButton("Library").apply { addActionListener { onBack() } })
-            add(JButton("Open").apply { addActionListener { onOpen() } })
-            add(JButton("Contents").apply { addActionListener { onChooseChapter() } })
-            add(JButton("Reading Settings").apply { addActionListener { onSettings() } })
-        }, BorderLayout.WEST)
-        add(titleLabel, BorderLayout.EAST)
-    }
+    private fun createTopToolbar() = EdgeReaderUi.header(
+        titleLabel,
+        EdgeReaderUi.toolbar(
+            "EdgeReader.Txt.Header",
+            this,
+            EdgeReaderUi.action("Back to Library", EdgeReaderIcons.Library, perform = onBack),
+            EdgeReaderUi.action("Open Book", EdgeReaderIcons.Open, perform = onOpen),
+            EdgeReaderUi.action("Table of Contents", EdgeReaderIcons.Contents, perform = onChooseChapter),
+            EdgeReaderUi.action("Reading Settings", EdgeReaderIcons.Settings, perform = onSettings),
+        ),
+    )
 
-    private fun createStatusBar(): JBPanel<*> = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4, 6)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+    private fun createStatusBar() = EdgeReaderUi.footer(
+        JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+            isOpaque = false
             add(chapterLabel)
             add(positionLabel)
             add(progressLabel)
-        }, BorderLayout.WEST)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.RIGHT, 4, 0)).apply {
-            add(JButton("Previous Chapter").apply { addActionListener { previousChapter() } })
-            add(JButton("Next Chapter").apply { addActionListener { nextChapter() } })
-        }, BorderLayout.EAST)
-    }
+        },
+        EdgeReaderUi.toolbar(
+            "EdgeReader.Txt.Navigation",
+            this,
+            EdgeReaderUi.action("Previous Chapter", EdgeReaderIcons.Previous, perform = ::previousChapter),
+            EdgeReaderUi.action("Next Chapter", EdgeReaderIcons.Next, perform = ::nextChapter),
+        ),
+    )
 
     private fun onScrolled(value: Int) {
         publishLocation()

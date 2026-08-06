@@ -18,6 +18,7 @@ The current TXT, EPUB, and PDF reader provides:
 - PDFBox-based file-backed PDF loading, page rendering, outline navigation, page jumps, and text search.
 - Current-page plus adjacent-page rendering with a bounded LRU image cache, fit-width mode, and 50%–400% zoom.
 - Stable PDF restoration by page, vertical ratio, and zoom; image-only scanned PDFs remain readable without OCR.
+- Compact JetBrains-native toolbars and theme-aware reading surfaces with light, dark, sepia, and soft-green themes.
 
 ## Requirements
 

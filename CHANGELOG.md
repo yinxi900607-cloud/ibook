@@ -3,6 +3,13 @@
 # Edge Reader Changelog
 
 ## [Unreleased]
+### Changed
+- Replaced large Swing button rows with compact IntelliJ Action Toolbars and theme-aware SVG actions.
+- Refined library rows, reading status bars, typography, line spacing, paragraph spacing, and reading themes.
+
+### Fixed
+- Removed XHTML XML declarations before EPUB chapters reach Swing HTML rendering, preventing `?xml version=...?>` from appearing as book text.
+
 ### Added
 - IntelliJ Platform Gradle Plugin 2.x project targeting the current IntelliJ 2026.2 runtime.
 - Right-side Edge Reader Tool Window with an empty library state.

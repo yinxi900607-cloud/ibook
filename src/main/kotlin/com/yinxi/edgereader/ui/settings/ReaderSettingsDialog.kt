@@ -25,7 +25,23 @@ class ReaderSettingsDialog(
         selectedItem = settings.fontFamily.ifBlank { "Follow IDE" }
     }
     private val sizeSpinner = JSpinner(SpinnerNumberModel(settings.fontSize.coerceIn(12, 36), 12, 36, 1))
+    private val lineSpacingSpinner = JSpinner(SpinnerNumberModel(settings.lineSpacing.toDouble().coerceIn(1.0, 2.5), 1.0, 2.5, 0.1))
+    private val paragraphSpacingSpinner = JSpinner(SpinnerNumberModel(settings.paragraphSpacing.coerceIn(0, 32), 0, 32, 1))
     private val marginSpinner = JSpinner(SpinnerNumberModel(settings.horizontalMargin.coerceIn(8, 80), 8, 80, 2))
+    private val themeCombo = ComboBox(ReaderTheme.entries.toTypedArray()).apply {
+        selectedItem = ReaderTheme.fromStored(settings.theme)
+        renderer = object : javax.swing.DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(
+                list: javax.swing.JList<*>?, value: Any?, index: Int, selected: Boolean, focused: Boolean,
+            ): java.awt.Component = super.getListCellRendererComponent(
+                list,
+                (value as? ReaderTheme)?.displayName ?: value,
+                index,
+                selected,
+                focused,
+            )
+        }
+    }
 
     init {
         title = "Reading Settings"
@@ -35,7 +51,10 @@ class ReaderSettingsDialog(
     override fun doOKAction() {
         settings.fontFamily = fontCombo.selectedItem?.toString().orEmpty().takeUnless { it == "Follow IDE" }.orEmpty()
         settings.fontSize = sizeSpinner.value as Int
+        settings.lineSpacing = (lineSpacingSpinner.value as Number).toFloat()
+        settings.paragraphSpacing = paragraphSpacingSpinner.value as Int
         settings.horizontalMargin = marginSpinner.value as Int
+        settings.theme = (themeCombo.selectedItem as? ReaderTheme ?: ReaderTheme.FOLLOW_IDE).name
         super.doOKAction()
     }
 
@@ -58,5 +77,11 @@ class ReaderSettingsDialog(
         add(sizeSpinner, fieldConstraints.apply { gridy = 1 })
         add(JBLabel("Horizontal margin"), labelConstraints.apply { gridy = 2 })
         add(marginSpinner, fieldConstraints.apply { gridy = 2 })
+        add(JBLabel("Line spacing"), labelConstraints.apply { gridy = 3 })
+        add(lineSpacingSpinner, fieldConstraints.apply { gridy = 3 })
+        add(JBLabel("Paragraph spacing"), labelConstraints.apply { gridy = 4 })
+        add(paragraphSpacingSpinner, fieldConstraints.apply { gridy = 4 })
+        add(JBLabel("Theme"), labelConstraints.apply { gridy = 5 })
+        add(themeCombo, fieldConstraints.apply { gridy = 5 })
     }
 }

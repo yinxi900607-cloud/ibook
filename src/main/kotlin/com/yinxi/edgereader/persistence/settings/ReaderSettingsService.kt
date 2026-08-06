@@ -21,7 +21,9 @@ class ReaderSettingsService : PersistentStateComponent<ReaderSettingsService.Set
         var fontFamily: String = ""
         var fontSize: Int = 18
         var lineSpacing: Float = 1.35f
+        var paragraphSpacing: Int = 8
         var horizontalMargin: Int = 24
+        var theme: String = "FOLLOW_IDE"
         var autoRestore: Boolean = true
         var lastBookId: String? = null
     }

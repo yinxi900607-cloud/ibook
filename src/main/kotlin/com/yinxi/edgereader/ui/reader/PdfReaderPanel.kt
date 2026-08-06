@@ -1,5 +1,6 @@
 package com.yinxi.edgereader.ui.reader
 
+import com.intellij.openapi.components.service
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
@@ -9,12 +10,15 @@ import com.yinxi.edgereader.parser.pdf.PdfParsedBook
 import com.yinxi.edgereader.parser.pdf.PdfRenderedPage
 import com.yinxi.edgereader.parser.pdf.PdfZoomMode
 import com.yinxi.edgereader.service.OpenedBook
+import com.yinxi.edgereader.persistence.settings.ReaderSettingsService
+import com.yinxi.edgereader.ui.EdgeReaderIcons
+import com.yinxi.edgereader.ui.EdgeReaderUi
+import com.yinxi.edgereader.ui.settings.ReaderTheme
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import javax.swing.ImageIcon
-import javax.swing.JButton
 import javax.swing.JSpinner
 import javax.swing.SpinnerNumberModel
 import javax.swing.SwingConstants
@@ -26,6 +30,7 @@ class PdfReaderPanel(
     private val onOpen: () -> Unit,
     private val onChooseChapter: () -> Unit,
     private val onSearch: () -> Unit,
+    private val onSettings: () -> Unit,
     private val onRequestPage: (Int, Int, PdfZoomMode, Float, Long) -> Unit,
     private val onLocationChanged: (ReadingLocator.PdfLocator, String?, Double) -> Unit,
 ) : JBPanel<PdfReaderPanel>(BorderLayout()) {
@@ -59,6 +64,10 @@ class PdfReaderPanel(
         add(createTopToolbar(), BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
         add(createStatusBar(), BorderLayout.SOUTH)
+        EdgeReaderUi.secondary(statusLabel)
+        EdgeReaderUi.secondary(progressLabel)
+        EdgeReaderUi.secondary(zoomLabel)
+        EdgeReaderUi.secondary(textStatusLabel)
         pageSpinner.addChangeListener {
             if (!changingSpinner) showPage((pageSpinner.value as Int) - 1)
         }
@@ -76,11 +85,13 @@ class PdfReaderPanel(
         openedBook = book
         val pdf = book.parsedBook as PdfParsedBook
         titleLabel.text = book.record.title
+        titleLabel.toolTipText = book.record.title
         textStatusLabel.text = if (pdf.hasSearchableText) "" else "No searchable text detected"
         currentPage = locator?.pageIndex?.coerceIn(0, (pdf.pageCount - 1).coerceAtLeast(0)) ?: 0
         zoomMode = runCatching { PdfZoomMode.valueOf(locator?.zoomMode.orEmpty()) }.getOrDefault(PdfZoomMode.FIT_WIDTH)
         customScale = locator?.zoomScale?.toFloat()?.coerceIn(0.5f, 4f) ?: 1f
         requestedVerticalRatio = locator?.verticalRatio?.coerceIn(0.0, 1.0) ?: 0.0
+        applySettings()
         changingSpinner = true
         pageModel.maximum = pdf.pageCount.coerceAtLeast(1)
         pageSpinner.value = currentPage + 1
@@ -136,6 +147,16 @@ class PdfReaderPanel(
     )
 
     fun hasRenderedPage(): Boolean = imageLabel.icon != null
+
+    fun applySettings() {
+        val state = service<ReaderSettingsService>().state
+        val palette = ReaderTheme.fromStored(state.theme).palette()
+        imageLabel.background = palette.background
+        imageLabel.foreground = palette.foreground
+        imageLabel.isOpaque = true
+        scrollPane.viewport.background = palette.background
+        repaint()
+    }
 
     fun disposeReader() {
         resizeTimer.stop()
@@ -196,32 +217,48 @@ class PdfReaderPanel(
         return if (range <= 0) 0.0 else bar.value.toDouble() / range
     }
 
-    private fun createTopToolbar(): JBPanel<*> = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-            add(JButton("Library").apply { addActionListener { onBack() } })
-            add(JButton("Open").apply { addActionListener { onOpen() } })
-            add(JButton("Contents").apply { addActionListener { onChooseChapter() } })
-            add(JButton("Search").apply { addActionListener { onSearch() } })
-        }, BorderLayout.WEST)
-        add(titleLabel, BorderLayout.EAST)
-    }
+    private fun createTopToolbar() = EdgeReaderUi.header(
+        titleLabel,
+        EdgeReaderUi.toolbar(
+            "EdgeReader.Pdf.Header",
+            this,
+            EdgeReaderUi.action("Back to Library", EdgeReaderIcons.Library, perform = onBack),
+            EdgeReaderUi.action("Open Book", EdgeReaderIcons.Open, perform = onOpen),
+            EdgeReaderUi.action("Table of Contents", EdgeReaderIcons.Contents, perform = onChooseChapter),
+            EdgeReaderUi.action("Search PDF", EdgeReaderIcons.Search, perform = onSearch),
+            EdgeReaderUi.action("Reading Settings", EdgeReaderIcons.Settings, perform = onSettings),
+        ),
+    )
 
-    private fun createStatusBar(): JBPanel<*> = JBPanel<JBPanel<*>>(BorderLayout()).apply {
-        border = JBUI.Borders.empty(4, 6)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+    private fun createStatusBar() = EdgeReaderUi.footer(
+        JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+            isOpaque = false
             add(statusLabel)
             add(progressLabel)
             add(zoomLabel)
             add(textStatusLabel)
-        }, BorderLayout.WEST)
-        add(JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.RIGHT, 4, 0)).apply {
-            add(JButton("−").apply { toolTipText = "Zoom out"; addActionListener { changeZoom(0.8f) } })
-            add(JButton("+").apply { toolTipText = "Zoom in"; addActionListener { changeZoom(1.25f) } })
-            add(JButton("Fit").apply { addActionListener { setFitWidth() } })
-            add(JButton("Previous").apply { addActionListener { previousPage() } })
+        },
+        JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.RIGHT, 0, 0)).apply {
+            isOpaque = false
+            add(EdgeReaderUi.toolbar(
+                "EdgeReader.Pdf.Zoom",
+                this@PdfReaderPanel,
+                EdgeReaderUi.action("Zoom Out", EdgeReaderIcons.ZoomOut) { changeZoom(0.8f) },
+                EdgeReaderUi.action("Zoom In", EdgeReaderIcons.ZoomIn) { changeZoom(1.25f) },
+                EdgeReaderUi.action("Fit Width", EdgeReaderIcons.FitWidth, perform = ::setFitWidth),
+                EdgeReaderUi.action("Previous Page", EdgeReaderIcons.Previous, enabled = { currentPage > 0 }, perform = ::previousPage),
+            ))
             add(pageSpinner)
-            add(JButton("Next").apply { addActionListener { nextPage() } })
-        }, BorderLayout.EAST)
-    }
+            add(EdgeReaderUi.toolbar(
+                "EdgeReader.Pdf.Next",
+                this@PdfReaderPanel,
+                EdgeReaderUi.action(
+                    "Next Page",
+                    EdgeReaderIcons.Next,
+                    enabled = { currentPage + 1 < ((openedBook?.parsedBook as? PdfParsedBook)?.pageCount ?: 0) },
+                    perform = ::nextPage,
+                ),
+            ))
+        },
+    )
 }

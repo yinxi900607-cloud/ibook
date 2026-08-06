@@ -76,6 +76,7 @@ class EdgeReaderPanel(
         onOpen = ::chooseBook,
         onChooseChapter = ::chooseChapter,
         onSearch = ::showPdfSearch,
+        onSettings = ::showSettings,
         onRequestPage = ::loadPdfPage,
         onLocationChanged = ::onPdfLocationChanged,
     )
@@ -320,6 +321,7 @@ class EdgeReaderPanel(
         when (currentBook?.record?.format) {
             BookFormat.TXT -> txtReaderPanel.applySettings()
             BookFormat.EPUB -> epubReaderPanel.applySettings()
+            BookFormat.PDF -> pdfReaderPanel.applySettings()
             else -> Unit
         }
     }

@@ -2,7 +2,9 @@ package com.yinxi.edgereader.security
 
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.DocumentType
 import org.jsoup.nodes.Element
+import org.jsoup.nodes.XmlDeclaration
 import org.jsoup.parser.Parser
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -22,6 +24,9 @@ class HtmlSanitizer(
         require(access.contains(sourceFile)) { "HTML document is outside the EPUB cache" }
         val source = Files.readString(sourceFile, StandardCharsets.UTF_8)
         val document = Jsoup.parse(source, sourceFile.toUri().toString(), Parser.xmlParser())
+        document.childNodes()
+            .filter { it is XmlDeclaration || it is DocumentType }
+            .forEach { it.remove() }
         document.outputSettings().syntax(Document.OutputSettings.Syntax.html)
         removeDangerousContent(document, sourceFile)
         rewriteResources(document, sourceFile)
