@@ -2,10 +2,10 @@ package com.yinxi.edgereader.service
 
 import com.yinxi.edgereader.model.BookRecord
 import com.yinxi.edgereader.model.ReadingProgress
-import com.yinxi.edgereader.parser.txt.TxtParsedBook
+import com.yinxi.edgereader.parser.ParsedBook
 
 data class OpenedBook(
     val record: BookRecord,
-    val parsedBook: TxtParsedBook,
+    val parsedBook: ParsedBook,
     val progress: ReadingProgress?,
 )

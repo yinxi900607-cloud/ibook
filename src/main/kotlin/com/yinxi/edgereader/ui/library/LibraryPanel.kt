@@ -37,7 +37,7 @@ class LibraryPanel(
     private val allList = createList(allModel, "Your library is empty")
     private val missingList = createList(missingModel, "No missing files")
     private val tabs = JBTabbedPane()
-    private val emptyMessage = JBLabel("Open a local TXT book to start reading.")
+    private val emptyMessage = JBLabel("Open a local TXT or EPUB book to start reading.")
 
     init {
         border = JBUI.Borders.empty(8)
@@ -62,11 +62,11 @@ class LibraryPanel(
     }
 
     fun setLoading(loading: Boolean) {
-        emptyMessage.text = if (loading) "Loading library…" else "Open a local TXT book to start reading."
+        emptyMessage.text = if (loading) "Loading library…" else "Open a local TXT or EPUB book to start reading."
     }
 
     private fun createToolbar(): JBPanel<*> = JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT, 6, 4)).apply {
-        add(JButton("Open TXT").apply { addActionListener { onOpenFile() } })
+        add(JButton("Open Book").apply { addActionListener { onOpenFile() } })
         add(JButton("Continue").apply { addActionListener { selectedBook()?.let(onContinue) } })
         add(JButton("Relocate").apply { addActionListener { selectedBook()?.let(onRelocate) } })
         add(JButton("Remove").apply { addActionListener { selectedBook()?.let(onRemove) } })

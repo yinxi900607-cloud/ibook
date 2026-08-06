@@ -32,10 +32,13 @@ data class TxtParsedBook(
 }
 
 class TxtBookParser : BookParser {
+    override val format = BookFormat.TXT
+
     override fun supports(file: Path): Boolean {
         if (!Files.isRegularFile(file)) return false
         val extension = file.fileName.toString().substringAfterLast('.', "").lowercase()
         if (extension in setOf("txt", "text")) return true
+        if (extension in setOf("epub", "pdf", "md", "markdown", "html", "htm", "xhtml")) return false
         val header = Files.newInputStream(file).use { it.readNBytes(8) }
         return header.isNotEmpty() && !header.startsWith("%PDF".toByteArray()) && !header.startsWith("PK".toByteArray())
     }

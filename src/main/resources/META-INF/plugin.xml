@@ -4,7 +4,7 @@
     <vendor>yinxi</vendor>
     <description><![CDATA[
         <p>A private, local-first electronic book reader integrated into JetBrains IDEs.</p>
-        <p>Edge Reader provides a collapsible reading shelf with large-file TXT reading, chapter navigation, and progress restoration.</p>
+        <p>Edge Reader provides a collapsible reading shelf with secure EPUB and large-file TXT reading, chapter navigation, and progress restoration.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

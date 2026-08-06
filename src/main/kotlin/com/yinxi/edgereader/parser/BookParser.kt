@@ -1,6 +1,7 @@
 package com.yinxi.edgereader.parser
 
 import com.yinxi.edgereader.model.BookMetadata
+import com.yinxi.edgereader.model.BookFormat
 import com.yinxi.edgereader.model.BookNavigationItem
 import com.yinxi.edgereader.model.SearchOptions
 import com.yinxi.edgereader.model.SearchResult
@@ -11,6 +12,8 @@ data class BookOpenContext(
     val bookId: String,
     val encoding: String? = null,
     val indexCacheDirectory: Path? = null,
+    val bookCacheDirectory: Path? = null,
+    val cacheKey: String? = null,
 )
 
 interface ParsedBook : Closeable {
@@ -20,6 +23,7 @@ interface ParsedBook : Closeable {
 }
 
 interface BookParser {
+    val format: BookFormat
     fun supports(file: Path): Boolean
     suspend fun parseMetadata(file: Path): BookMetadata
     suspend fun open(file: Path, context: BookOpenContext): ParsedBook

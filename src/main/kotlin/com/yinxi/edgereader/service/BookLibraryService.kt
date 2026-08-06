@@ -7,7 +7,10 @@ import com.intellij.openapi.diagnostic.logger
 import com.yinxi.edgereader.model.BookRecord
 import com.yinxi.edgereader.parser.BookOpenContext
 import com.yinxi.edgereader.parser.BookParserRegistry
+import com.yinxi.edgereader.parser.epub.EpubChapterContent
+import com.yinxi.edgereader.parser.epub.EpubParsedBook
 import com.yinxi.edgereader.parser.txt.TxtParsedBook
+import com.yinxi.edgereader.parser.txt.TextSlice
 import com.yinxi.edgereader.persistence.database.EdgeReaderDatabaseService
 import com.yinxi.edgereader.persistence.repository.SqliteBookRepository
 import com.yinxi.edgereader.persistence.repository.SqliteProgressRepository
@@ -46,7 +49,7 @@ class BookLibraryService(
         callback: (Result<OpenedBook>) -> Unit,
     ): Job = coroutineScope.launch(Dispatchers.IO) {
         val result = runCatching { openBookInternal(file, encodingOverride) }.onFailure { exception ->
-            logger<BookLibraryService>().warn("Failed to open TXT file", exception)
+            logger<BookLibraryService>().warn("Failed to open book format", exception)
         }
         deliver(callback, result)
     }
@@ -78,31 +81,51 @@ class BookLibraryService(
         deliver(callback, result)
     }
 
-    fun readSlice(
+    fun readTextSlice(
         book: OpenedBook,
         startOffset: Long,
         maxCharacters: Int,
-        callback: (Result<com.yinxi.edgereader.parser.txt.TextSlice>) -> Unit,
+        callback: (Result<TextSlice>) -> Unit,
     ): Job = coroutineScope.launch(Dispatchers.IO) {
-        deliver(callback, runCatching { book.parsedBook.source.read(startOffset, maxCharacters) })
+        deliver(callback, runCatching { (book.parsedBook as TxtParsedBook).source.read(startOffset, maxCharacters) })
+    }
+
+    fun readEpubChapter(
+        book: OpenedBook,
+        chapterIndex: Int,
+        callback: (Result<EpubChapterContent>) -> Unit,
+    ): Job = coroutineScope.launch(Dispatchers.IO) {
+        deliver(callback, runCatching { (book.parsedBook as EpubParsedBook).chapter(chapterIndex) })
     }
 
     private suspend fun openBookInternal(file: Path, encodingOverride: String?): OpenedBook {
-        val record = identity.resolve(file, encodingOverride)
         val parser = requireNotNull(registry.findParser(file)) { "Unsupported book format" }
+        val record = identity.resolve(file, parser.format, encodingOverride)
         val parsed = parser.open(
             file,
             BookOpenContext(
                 bookId = record.id,
                 encoding = encodingOverride ?: record.encoding,
                 indexCacheDirectory = databaseService.dataDirectory().resolve("cache/indexes"),
+                bookCacheDirectory = databaseService.dataDirectory().resolve("cache/epub"),
+                cacheKey = record.quickFingerprint,
             ),
-        ) as TxtParsedBook
-        books.updateEncoding(record.id, parsed.index.charsetName)
-        books.replaceChapters(record.id, parsed.index.chapters)
+        )
+        if (parsed is TxtParsedBook) books.updateEncoding(record.id, parsed.index.charsetName)
+        val navigation = parser.buildNavigation(parsed)
+        books.replaceChapters(record.id, navigation)
+        books.upsert(
+            (books.findById(record.id) ?: record).copy(
+                title = parsed.metadata.title,
+                author = parsed.metadata.author,
+                format = parsed.metadata.format,
+                coverCachePath = (parsed as? EpubParsedBook)?.coverFile?.toString(),
+                encoding = (parsed as? TxtParsedBook)?.index?.charsetName ?: record.encoding,
+            ),
+        )
         books.markOpened(record.id, System.currentTimeMillis())
         if (record.contentHash == null) scheduleFullHash(record.id, file)
-        val refreshed = books.findById(record.id) ?: record.copy(encoding = parsed.index.charsetName)
+        val refreshed = books.findById(record.id) ?: record
         return OpenedBook(refreshed, parsed, progress.find(record.id))
     }
 

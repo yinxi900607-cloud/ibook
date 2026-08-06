@@ -15,9 +15,6 @@ class EdgeReaderToolWindowFactory : ToolWindowFactory, DumbAware {
         content.setDisposer(panel)
         toolWindow.contentManager.addContent(content)
     }
-
-    override fun shouldBeAvailable(project: Project): Boolean = true
-
     companion object {
         const val TOOL_WINDOW_ID = "Edge Reader"
     }

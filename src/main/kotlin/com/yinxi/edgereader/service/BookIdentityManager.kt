@@ -16,7 +16,7 @@ import java.util.UUID
 class BookIdentityManager(
     private val repository: BookRepository,
 ) {
-    fun resolve(file: Path, encoding: String? = null): BookRecord {
+    fun resolve(file: Path, format: BookFormat, encoding: String? = null): BookRecord {
         require(Files.isRegularFile(file)) { "Book file does not exist: $file" }
         val canonical = file.toRealPath().toString()
         val size = Files.size(file)
@@ -30,6 +30,7 @@ class BookIdentityManager(
                 fileSize = size,
                 modifiedAt = modifiedAt,
                 quickFingerprint = fingerprint,
+                format = format,
                 encoding = encoding ?: existing.encoding,
                 missing = false,
             ).also(repository::upsert)
@@ -46,7 +47,7 @@ class BookIdentityManager(
             id = UUID.randomUUID().toString(),
             title = file.fileName.toString().substringBeforeLast('.'),
             author = null,
-            format = BookFormat.TXT,
+            format = format,
             currentPath = file.toAbsolutePath().normalize().toString(),
             canonicalPath = canonical,
             fileName = file.fileName.toString(),

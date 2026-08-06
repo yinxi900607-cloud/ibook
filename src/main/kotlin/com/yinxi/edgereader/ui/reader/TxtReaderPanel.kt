@@ -9,6 +9,7 @@ import com.intellij.util.ui.JBUI
 import com.yinxi.edgereader.model.BookNavigationItem
 import com.yinxi.edgereader.model.ReadingLocator
 import com.yinxi.edgereader.parser.txt.TextSlice
+import com.yinxi.edgereader.parser.txt.TxtParsedBook
 import com.yinxi.edgereader.persistence.settings.ReaderSettingsService
 import com.yinxi.edgereader.service.OpenedBook
 import java.awt.BorderLayout
@@ -99,21 +100,22 @@ class TxtReaderPanel(
 
     fun jumpTo(characterOffset: Long) {
         val book = openedBook ?: return
-        val bounded = characterOffset.coerceIn(0, book.parsedBook.index.totalCharacters)
+        val txtBook = book.parsedBook as TxtParsedBook
+        val bounded = characterOffset.coerceIn(0, txtBook.index.totalCharacters)
         val start = maxOf(0, bounded - WINDOW_CHARACTERS / 4)
         requestSlice(start, bounded)
     }
 
     fun nextChapter() {
         val current = currentGlobalOffset()
-        openedBook?.parsedBook?.index?.chapters
+        (openedBook?.parsedBook as? TxtParsedBook)?.index?.chapters
             ?.firstOrNull { it.offset() > current + 1 }
             ?.let { jumpTo(it.offset()) }
     }
 
     fun previousChapter() {
         val current = currentGlobalOffset()
-        openedBook?.parsedBook?.index?.chapters
+        (openedBook?.parsedBook as? TxtParsedBook)?.index?.chapters
             ?.lastOrNull { it.offset() < current - 1 }
             ?.let { jumpTo(it.offset()) }
     }
@@ -178,9 +180,10 @@ class TxtReaderPanel(
     private fun publishLocation() {
         val book = openedBook ?: return
         val offset = currentGlobalOffset()
-        val total = book.parsedBook.index.totalCharacters
+        val index = (book.parsedBook as TxtParsedBook).index
+        val total = index.totalCharacters
         val percent = if (total <= 0) 0.0 else offset.toDouble() / total * 100.0
-        val chapter = book.parsedBook.index.chapters.lastOrNull { it.offset() <= offset }?.title
+        val chapter = index.chapters.lastOrNull { it.offset() <= offset }?.title
         chapterLabel.text = chapter ?: "No chapter"
         positionLabel.text = "$offset / $total"
         progressLabel.text = "%.1f%%".format(percent)

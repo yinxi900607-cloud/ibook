@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val edgeReaderLocalIdePath = providers.gradleProperty("edgeReaderLocalIdePath")
@@ -10,6 +11,7 @@ plugins {
 }
 
 dependencies {
+    implementation("org.jsoup:jsoup:1.22.2")
     implementation("org.xerial:sqlite-jdbc:3.53.1.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
@@ -17,10 +19,11 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
 
     intellijPlatform {
+        pluginVerifier("1.409")
         if (edgeReaderLocalIdePath.isPresent) {
             local(edgeReaderLocalIdePath.get())
         } else {
-            intellijIdeaCommunity("2025.2.6.2") {
+            intellijIdeaCommunity("2026.2.0.1") {
                 useInstaller = false
             }
         }
@@ -28,22 +31,33 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 intellijPlatform {
+    pluginVerification {
+        ides {
+            if (edgeReaderLocalIdePath.isPresent) {
+                local(file(edgeReaderLocalIdePath.get()))
+            } else {
+                current()
+            }
+        }
+    }
+
     pluginConfiguration {
         version = project.version.toString()
 
         ideaVersion {
-            sinceBuild = "242"
+            sinceBuild = "262"
         }
     }
 }
 
 tasks {
     withType<KotlinCompile>().configureEach {
-        compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_25)
+        compilerOptions.jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
     }
 
     test {

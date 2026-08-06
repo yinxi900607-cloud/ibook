@@ -1,6 +1,7 @@
 package com.yinxi.edgereader.service
 
 import com.yinxi.edgereader.persistence.database.EdgeReaderDatabase
+import com.yinxi.edgereader.model.BookFormat
 import com.yinxi.edgereader.persistence.repository.SqliteBookRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -21,11 +22,11 @@ class BookIdentityManagerTest {
         EdgeReaderDatabase(tempDirectory.resolve("identity.db")).use { database ->
             val repository = SqliteBookRepository(database)
             val identity = BookIdentityManager(repository)
-            val first = identity.resolve(firstPath)
+            val first = identity.resolve(firstPath, BookFormat.TXT)
             val movedPath = tempDirectory.resolve("renamed.txt")
             Files.move(firstPath, movedPath)
 
-            val moved = identity.resolve(movedPath)
+            val moved = identity.resolve(movedPath, BookFormat.TXT)
             val copy = tempDirectory.resolve("copy.txt")
             Files.copy(movedPath, copy)
 

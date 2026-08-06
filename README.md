@@ -4,7 +4,7 @@
 
 Edge Reader is a private, local-first electronic book reader integrated into JetBrains IDEs.
 
-The current TXT MVP provides:
+The current TXT and EPUB MVP provides:
 
 - A collapsible right-side Tool Window and shared local library.
 - UTF-8, UTF-16 LE/BE, GB18030, GBK, and Big5 handling with an encoding fallback dialog.
@@ -12,13 +12,17 @@ The current TXT MVP provides:
 - Chapter navigation, configurable font and margins, and continuous windowed scrolling.
 - SQLite-backed reading progress with 700ms debounce and a 15-second fallback save.
 - Path, quick fingerprint, and background full-hash identity tracking for moved files.
+- EPUB 2 NCX and EPUB 3 navigation, OPF manifest/spine parsing, cover discovery, local images, and basic CSS.
+- Stable EPUB chapter/text-offset progress restoration with a Swing HTML reader.
+- ZIP Slip, archive expansion, XML entity, script, remote-resource, and local path escape protections.
 
 ## Requirements
 
-- IntelliJ Platform 2024.2 or newer
-- Java 21 for development
+- IntelliJ Platform 2026.2
+- Java 25 for development (the bundled JBR in IntelliJ IDEA 2026.2 is supported)
 
-The build targets IntelliJ IDEA Community 2025.2.6.2 and depends only on `com.intellij.modules.platform`.
+The build currently targets IntelliJ IDEA Community 2026.2.0.1 and depends only on `com.intellij.modules.platform`.
+Older platform compatibility will be validated after current-version functionality is complete.
 
 ## Build
 
@@ -39,4 +43,4 @@ For local development against an already installed IDE, pass
 - Choose <kbd>Install Plugin from Disk…</kbd> and select the ZIP in `build/distributions/`.
 - Open the right-side <kbd>Edge Reader</kbd> Tool Window, or press <kbd>Option+R</kbd> on macOS / <kbd>Alt+R</kbd> on Windows and Linux.
 
-EPUB, PDF, Markdown, HTML, search, and bookmarks are intentionally deferred to later development phases.
+PDF, Markdown, standalone HTML, search UI, and bookmarks are intentionally deferred to later development phases.

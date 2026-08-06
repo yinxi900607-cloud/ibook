@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-- IntelliJ Platform Gradle Plugin 2.x project targeting Java 21.
+- IntelliJ Platform Gradle Plugin 2.x project targeting the current IntelliJ 2026.2 runtime.
 - Right-side Edge Reader Tool Window with an empty library state.
 - Local electronic book chooser for planned first-release formats.
 - Toggle Edge Reader action with Option+R / Alt+R default shortcut.
@@ -14,3 +14,9 @@
 - Shared library with recent, all-books, and missing-file views.
 - Debounced progress persistence, restart restoration, and moved-file quick fingerprint matching.
 - TXT chapter navigation, font settings, and configurable Keymap actions.
+- EPUB 2 and EPUB 3 package, manifest, spine, navigation, metadata, and cover parsing.
+- Secure EPUB extraction with entry, size, compression-ratio, path, and XML entity protections.
+- Sanitized Swing HTML chapter rendering with local images, basic CSS, and remote resources disabled.
+- Stable EPUB progress locators using spine ID, chapter href, element ID, normalized text offset, and scroll ratio.
+- Current IntelliJ IDEA 2026.2 platform as the primary runtime target.
+- Java 25 toolchain and bytecode target, matching the current IntelliJ 2026.2 runtime.
