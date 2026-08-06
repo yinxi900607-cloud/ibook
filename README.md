@@ -29,14 +29,15 @@ The current TXT, EPUB, PDF, Markdown, and local HTML reader provides:
 - IntelliJ Platform 2026.2
 - Java 25 for development (the bundled JBR in IntelliJ IDEA 2026.2 is supported)
 
-The build currently targets IntelliJ IDEA Community 2026.2.0.1 and depends only on `com.intellij.modules.platform`.
-Older platform compatibility will be validated after current-version functionality is complete.
+The build targets and is tested against IntelliJ IDEA 2026.2.0.1. It depends only on
+`com.intellij.modules.platform`; older IDE versions are intentionally outside the supported scope.
 
 ## Build
 
 ```shell
 ./gradlew clean test
 ./gradlew buildPlugin
+./gradlew verifyPlugin
 ```
 
 The installable archive is generated under `build/distributions/`.
@@ -51,4 +52,11 @@ For local development against an already installed IDE, pass
 - Choose <kbd>Install Plugin from Disk…</kbd> and select the ZIP in `build/distributions/`.
 - Open the right-side <kbd>Edge Reader</kbd> Tool Window, or press <kbd>Option+R</kbd> on macOS / <kbd>Alt+R</kbd> on Windows and Linux.
 
-All book files, reading progress, bookmarks, and caches remain local to the JetBrains IDE system directory. HTML and Markdown scripts, frames, forms, remote resources, and out-of-root local resources are blocked.
+Detailed installation and upgrade instructions are in [INSTALL.md](INSTALL.md).
+
+All book files, reading progress, bookmarks, and caches remain local to the JetBrains IDE system directory. HTML and Markdown scripts, frames, forms, remote resources, and out-of-root local resources are blocked. See [PRIVACY.md](PRIVACY.md) for the complete local-data policy.
+
+## Legal
+
+- Edge Reader source and original assets: [LICENSE](LICENSE)
+- Bundled open-source libraries: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)

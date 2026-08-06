@@ -1,11 +1,19 @@
 <idea-plugin>
     <id>com.yinxi.edgereader</id>
     <name>Edge Reader</name>
-    <vendor>yinxi</vendor>
+    <vendor url="https://github.com/yinxi900607-cloud">yinxi</vendor>
     <description><![CDATA[
         <p>A private, local-first electronic book reader integrated into JetBrains IDEs.</p>
         <p>Edge Reader provides a collapsible reading shelf with secure EPUB, large-file TXT, bounded PDF, Markdown, and local HTML reading, navigation, search, bookmarks, and progress restoration.</p>
     ]]></description>
+    <change-notes><![CDATA[
+        <p>Edge Reader 0.6.0 targets IntelliJ IDEA 2026.2 and completes the local-first reader MVP.</p>
+        <ul>
+            <li>TXT, EPUB, PDF, Markdown, and local HTML reading.</li>
+            <li>Cross-format search, bookmarks, navigation, themes, and progress restoration.</li>
+            <li>Secure EPUB extraction and local HTML resource containment.</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 

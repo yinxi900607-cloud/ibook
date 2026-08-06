@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 ### Changed
+- Set IntelliJ IDEA 2026.2 as the minimum and currently tested platform.
+- Updated build and release automation to Java 25 and attached the built ZIP to GitHub release drafts.
 - Replaced large Swing button rows with compact IntelliJ Action Toolbars and theme-aware SVG actions.
 - Refined library rows, reading status bars, typography, line spacing, paragraph spacing, and reading themes.
 
@@ -11,6 +13,8 @@
 - Removed XHTML XML declarations before EPUB chapters reach Swing HTML rendering, preventing `?xml version=...?>` from appearing as book text.
 
 ### Added
+- Installation, privacy, proprietary license, third-party notices, and Marketplace publishing documentation.
+- Environment-backed JetBrains Marketplace signing and publishing configuration.
 - IntelliJ Platform Gradle Plugin 2.x project targeting the current IntelliJ 2026.2 runtime.
 - Right-side Edge Reader Tool Window with an empty library state.
 - Local electronic book chooser for planned first-release formats.

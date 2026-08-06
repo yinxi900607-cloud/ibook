@@ -46,7 +46,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
 
       # Setup Gradle
       - name: Setup Gradle
@@ -86,7 +86,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
 
       # Setup Gradle
       - name: Setup Gradle
@@ -129,7 +129,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
 
       # Setup Gradle
       - name: Setup Gradle
@@ -169,13 +169,19 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: 21
+          java-version: 25
 
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: true
+
+      - name: Download plugin distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: plugin-distribution
+          path: ./build/distributions
 
       # Remove old release drafts by using the curl request for the available releases with a draft flag
       - name: Remove Old Release Drafts
@@ -198,4 +204,5 @@ jobs:
           gh release create $VERSION \
             --draft \
             --title $VERSION \
-            --notes-file $RELEASE_NOTE
+            --notes-file $RELEASE_NOTE \
+            ./build/distributions/*.zip
