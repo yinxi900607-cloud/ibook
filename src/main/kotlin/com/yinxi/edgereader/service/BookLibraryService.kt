@@ -30,6 +30,7 @@ class BookLibraryService(
     private val books by lazy { SqliteBookRepository(database) }
     private val progress by lazy { SqliteProgressRepository(database) }
     private val identity by lazy { BookIdentityManager(books) }
+    private val coverCache by lazy { BookCoverCache(databaseService.dataDirectory().resolve("cache/covers")) }
     private val registry = BookParserRegistry()
 
     fun loadLibrary(callback: (Result<List<BookRecord>>) -> Unit): Job = coroutineScope.launch(Dispatchers.IO) {
@@ -114,12 +115,14 @@ class BookLibraryService(
         if (parsed is TxtParsedBook) books.updateEncoding(record.id, parsed.index.charsetName)
         val navigation = parser.buildNavigation(parsed)
         books.replaceChapters(record.id, navigation)
+        val currentRecord = books.findById(record.id) ?: record
+        val thumbnail = (parsed as? EpubParsedBook)?.coverFile?.let { coverCache.createThumbnail(record.id, it) }
         books.upsert(
-            (books.findById(record.id) ?: record).copy(
+            currentRecord.copy(
                 title = parsed.metadata.title,
                 author = parsed.metadata.author,
                 format = parsed.metadata.format,
-                coverCachePath = (parsed as? EpubParsedBook)?.coverFile?.toString(),
+                coverCachePath = thumbnail?.toString() ?: currentRecord.coverCachePath,
                 encoding = (parsed as? TxtParsedBook)?.index?.charsetName ?: record.encoding,
             ),
         )

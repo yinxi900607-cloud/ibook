@@ -12,6 +12,7 @@ import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.FlowLayout
 import java.awt.Font
+import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.time.Instant
@@ -19,6 +20,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.swing.DefaultListModel
 import javax.swing.JButton
+import javax.swing.ImageIcon
 import javax.swing.JList
 import javax.swing.ListCellRenderer
 import javax.swing.ListSelectionModel
@@ -102,13 +104,23 @@ class LibraryPanel(
     private class BookRenderer : JBPanel<BookRenderer>(BorderLayout(8, 2)), ListCellRenderer<BookRecord> {
         private val title = JBLabel()
         private val details = JBLabel()
+        private val cover = JBLabel().apply {
+            preferredSize = Dimension(64, 88)
+            horizontalAlignment = JBLabel.CENTER
+            verticalAlignment = JBLabel.CENTER
+        }
+        private val iconCache = mutableMapOf<String, ImageIcon?>()
 
         init {
             border = JBUI.Borders.empty(8, 10)
             title.font = title.font.deriveFont(Font.BOLD)
             details.foreground = JBColor.GRAY
-            add(title, BorderLayout.NORTH)
-            add(details, BorderLayout.SOUTH)
+            add(cover, BorderLayout.WEST)
+            add(JBPanel<JBPanel<*>>(BorderLayout()).apply {
+                isOpaque = false
+                add(title, BorderLayout.NORTH)
+                add(details, BorderLayout.SOUTH)
+            }, BorderLayout.CENTER)
         }
 
         override fun getListCellRendererComponent(
@@ -122,6 +134,11 @@ class LibraryPanel(
             val lastRead = value.lastReadAt?.let { DATE_FORMAT.format(Instant.ofEpochMilli(it)) } ?: "Never read"
             val missing = if (value.missing) " · File missing" else ""
             details.text = "${value.format} · ${"%.1f".format(value.progressPercent)}% · $lastRead$missing"
+            cover.icon = value.coverCachePath?.let { path ->
+                iconCache.getOrPut(path) {
+                    path.takeIf { java.nio.file.Files.isRegularFile(java.nio.file.Path.of(it)) }?.let { ImageIcon(it) }
+                }
+            }
             background = if (isSelected) list.selectionBackground else list.background
             title.foreground = if (isSelected) list.selectionForeground else list.foreground
             isOpaque = true
