@@ -26,7 +26,7 @@ dependencies {
         if (edgeReaderLocalIdePath.isPresent) {
             local(edgeReaderLocalIdePath.get())
         } else {
-            intellijIdeaCommunity("2026.2.0.1") {
+            intellijIdea("2026.2.0.1") {
                 useInstaller = false
             }
         }

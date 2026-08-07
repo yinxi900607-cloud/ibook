@@ -115,7 +115,7 @@ build/distributions/edge-reader-<version>.zip
 ./gradlew runIde -PedgeReaderLocalIdePath=/absolute/path/to/IDE/Contents
 ```
 
-CI 和正式构建默认使用锁定版本的 IntelliJ IDEA Community 平台。
+CI 和正式构建默认使用锁定版本的 IntelliJ IDEA 统一平台。
 
 ## 当前不包含
 
