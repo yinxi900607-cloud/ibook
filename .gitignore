@@ -1,6 +1,30 @@
+# Operating system
 .DS_Store
-.gradle
-.idea
-.intellijPlatform
-.kotlin
-build
+
+# IDE-local files
+.idea/
+*.iml
+out/
+
+# Gradle, Kotlin, and IntelliJ Platform build state
+.gradle/
+.intellijPlatform/
+.kotlin/
+build/
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+local.properties
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*~

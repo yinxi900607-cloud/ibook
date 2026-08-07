@@ -17,8 +17,6 @@
 
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.EdgeReaderBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Edge Reader" displayType="BALLOON" isLogByDefault="true"/>
         <toolWindow

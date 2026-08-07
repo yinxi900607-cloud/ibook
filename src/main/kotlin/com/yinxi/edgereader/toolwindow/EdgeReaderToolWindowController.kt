@@ -1,12 +1,9 @@
 package com.yinxi.edgereader.toolwindow
 
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.project.Project
 
 @Service(Service.Level.PROJECT)
-class EdgeReaderToolWindowController(
-    @Suppress("unused") private val project: Project,
-) {
+class EdgeReaderToolWindowController {
     private var panel: EdgeReaderPanel? = null
 
     fun attach(panel: EdgeReaderPanel) {
