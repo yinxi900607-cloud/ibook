@@ -17,8 +17,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.22.2")
     implementation("org.xerial:sqlite-jdbc:3.53.1.0")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:6.1.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:6.1.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
 
     intellijPlatform {
