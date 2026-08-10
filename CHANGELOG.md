@@ -3,6 +3,12 @@
 # Edge Reader Changelog
 
 ## [Unreleased]
+
+## [0.6.1] - 2026-08-10
+### Fixed
+- Ensured reading themes override EPUB-authored fixed page backgrounds and text colors while preserving book layout, images, and links.
+
+## [0.6.0] - 2026-08-07
 ### Changed
 - Set IntelliJ IDEA 2026.2 as the minimum and currently tested platform.
 - Updated build and release automation to Java 25 and attached the built ZIP to GitHub release drafts.

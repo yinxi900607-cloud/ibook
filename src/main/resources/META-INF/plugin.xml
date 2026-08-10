@@ -7,11 +7,11 @@
         <p>Edge Reader provides a collapsible reading shelf with secure EPUB, large-file TXT, bounded PDF, Markdown, and local HTML reading, navigation, search, bookmarks, and progress restoration.</p>
     ]]></description>
     <change-notes><![CDATA[
-        <p>Edge Reader 0.6.0 targets IntelliJ IDEA 2026.2 and completes the local-first reader MVP.</p>
+        <p>Edge Reader 0.6.1 fixes EPUB reading-theme compatibility.</p>
         <ul>
-            <li>TXT, EPUB, PDF, Markdown, and local HTML reading.</li>
-            <li>Cross-format search, bookmarks, navigation, themes, and progress restoration.</li>
-            <li>Secure EPUB extraction and local HTML resource containment.</li>
+            <li>Dark, sepia, soft-green, and light themes now override EPUB files that hard-code white page backgrounds.</li>
+            <li>Theme foreground colors override hard-coded EPUB text colors for readable contrast.</li>
+            <li>Book layout, local images, links, and the original EPUB files remain unchanged.</li>
         </ul>
     ]]></change-notes>
 
