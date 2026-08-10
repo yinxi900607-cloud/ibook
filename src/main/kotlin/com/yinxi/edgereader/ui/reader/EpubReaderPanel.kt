@@ -12,6 +12,8 @@ import com.yinxi.edgereader.persistence.settings.ReaderSettingsService
 import com.yinxi.edgereader.service.OpenedBook
 import com.yinxi.edgereader.ui.EdgeReaderIcons
 import com.yinxi.edgereader.ui.EdgeReaderUi
+import com.yinxi.edgereader.ui.settings.ReaderHtmlTheme
+import com.yinxi.edgereader.ui.settings.ReaderPalette
 import com.yinxi.edgereader.ui.settings.ReaderTheme
 import java.awt.BorderLayout
 import java.awt.FlowLayout
@@ -84,8 +86,9 @@ class EpubReaderPanel(
         requestedLocator = target
         loading = false
         programmaticScroll = true
-        editorPane.editorKit = createEditorKit()
-        editorPane.text = content.html
+        val palette = currentPalette()
+        editorPane.editorKit = createEditorKit(palette)
+        editorPane.text = ReaderHtmlTheme.apply(content.html, palette)
         editorPane.caretPosition = 0
         SwingUtilities.invokeLater {
             restoreLocation(target)
@@ -152,9 +155,13 @@ class EpubReaderPanel(
         onRequestChapter(index, locator)
     }
 
-    private fun createEditorKit(): HTMLEditorKit {
+    private fun currentPalette(): ReaderPalette {
         val state = service<ReaderSettingsService>().state
-        val palette = ReaderTheme.fromStored(state.theme).palette()
+        return ReaderTheme.fromStored(state.theme).palette()
+    }
+
+    private fun createEditorKit(palette: ReaderPalette): HTMLEditorKit {
+        val state = service<ReaderSettingsService>().state
         editorPane.background = palette.background
         editorPane.foreground = palette.foreground
         scrollPane.viewport.background = palette.background
